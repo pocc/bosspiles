@@ -25,7 +25,7 @@ async def on_message(message):
     if message.content.startswith('!bp'):
         print(f"Received message `{message.content}`")
         args = shlex.split(message.content[3:])
-        if len(args) < 3:
+        if len(args) < 2:
             await send_help(message.channel)
             return
         if args[0] in ["add", "remove"] and len(args) != 2:
@@ -94,7 +94,57 @@ async def send_table_embed(message, game, active_players, inactive_players):
 
 async def send_help(channel):
     """Send the user a message explaining what this bot does."""
-    await channel.send("Wrong number of arguments. Check `!bp`.")
+    await channel.send("""Bosspile Bot : Manage bosspiles for you automagically
+`Available Commands`
+`==================`
+    
+    **win** <player 1> <player 2>
+        Updates the bosspile with a win by player 1 over player 2
+
+    **add** <player>
+        Add a player to the bottom of the bosspile
+
+    **remove** <player>
+        Remove a player from the bosspile
+
+    **active** <player> <"true" or "false">
+        Change the status of a player to active or inactive (timer icon)
+    
+`Examples`
+`========`
+    
+    For these examples, your discord name is `Alice`.
+    All of these options change the bosspile.
+    
+    **win**
+        You won against Bob:
+            `!bg win Alice Bob`
+        
+        Expected Output includes result, as well as all new matches:
+            `Bob has lost to Alice`
+            `Frank ⚔ Georgia`
+            `Harriett ⚔ Ian`
+    **add**
+        You want to add player Charlie:
+            `!bg add Charlie`
+        
+        Expected Output:
+            `Charlie has been added.`
+    
+    **remove**
+        You want to remove player Dan:
+            `!bg remove Dan`
+        
+        Expected Output:
+            `Dan has been removed.`
+
+    **active**
+        You want to make Eddie inactive and put a timer before his name:
+            `!bg active Eddie false`
+        
+        Expected Output:
+            `Eddie is now inactive.`
+""")
 
 
 class PlayerData:
