@@ -28,10 +28,10 @@ async def on_message(message):
         if len(args) < 2:
             await send_help(message.channel)
             return
-        if args[0] in ["add", "remove"] and len(args) != 2:
+        if args[0] in ["add", "win", "remove"] and len(args) != 2:
             await message.channel.send(f"`!bp {args[1]}` requires 3 arguments. See `!bp`.")
             return
-        if args[0] in ["win", "active"] and len(args) != 3:
+        if args[0] in ["active"] and len(args) != 3:
             await message.channel.send(f"`!bp {args[1]}` requires 4 arguments. See `!bp`.")
             return
         pins = await message.channel.pins()
@@ -53,8 +53,7 @@ async def on_message(message):
         bosspile = BossPile("Can't stop", bp_message.content)
         if args[0] == "win":
             victor = args[1]
-            loser = args[2]
-            win_messages = bosspile.win(victor, loser)
+            win_messages = bosspile.win(victor)
             [await message.channel.send(m) for m in win_messages]
         elif args[0] == "add":
             player_name = args[1]
@@ -118,8 +117,8 @@ async def send_help(channel):
     All of these options change the bosspile.
     
     **win**
-        You won against Bob:
-            `!bg win Alice Bob`
+        You won against Bob. (You don't need to include his name because of ^^ emojis):
+            `!bg win Alice`
         
         Expected Output includes result, as well as all new matches:
             `Alice defeats Bob`
@@ -164,24 +163,22 @@ class BossPile:
         self.game = game
         self.players = self.parse_bosspile(bosspile_text)
 
-    def win(self, p1, p2):
+    def win(self, p1):
         """p1 has won the game. p1 is climbing. p2 stops climbing."""
         p1_pos = -1
-        p2_pos = -1
         for i in range(len(self.players)):
             player = self.players[i]
             if player.username == p1:
                 p1_pos = i
-            if player.username == p2:
-                p2_pos = i
         if p1_pos == -1:
             return [f"`{p1}` is not a valid player name. You may need to quote."]
-        if p2_pos == -1:
-            return [f"`{p2}` is not a valid player name. You may need to quote."]
+        # If you are climbing, then you move and you played the person above.
+        if self.players[p1_pos].climbing:
+            p2_pos = p1_pos - 1
+        else:  # Otherwise you defended a challenge
+            p2_pos = p1_pos + 1
         if not (self.players[p1_pos].climbing ^ self.players[p2_pos].climbing):
             return ["An invalid match was detected: 0 or 2 climbers found. No changes made."]
-        if abs(p1_pos - p2_pos) != 1:
-            return ["An invalid match was detected: Players are not adjacent. No changes made."]
         messages = [self.players[p1_pos].username + " defeats " + self.players[p2_pos].username]
         self.players[p1_pos].climbing = True
         self.players[p2_pos].climbing = False
