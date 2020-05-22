@@ -41,13 +41,14 @@ async def on_message(message):
         bp_message = None
         edit_existing_bp = False
         for pin in pins:
-            if ":crown:" in pin.content and ":arrow_double_up:" in pin.content:
+            if (":crown:" in pin.content or "👑" in pin.content) \
+                    and (":arrow_double_up:" in pin.content or "⏫" in pin.content):
                 bp_message = pin
                 # We can only edit our own messages
                 edit_existing_bp = pin.author == client.user
                 break
         if not bp_message:
-            await message.channel.send("This channel has no bosspile! Pin a your bosspile message and try again.")
+            await message.channel.send("This channel has no bosspile! Pin your bosspile message and try again.")
             return
         bosspile = BossPile("Can't stop", bp_message.content)
         if args[0] == "win":
@@ -121,7 +122,7 @@ async def send_help(channel):
             `!bg win Alice Bob`
         
         Expected Output includes result, as well as all new matches:
-            `Bob has lost to Alice`
+            `Alice defeats Bob`
             `Frank ⚔ Georgia`
             `Harriett ⚔ Ian`
     **add**
@@ -181,25 +182,25 @@ class BossPile:
             return ["An invalid match was detected: 0 or 2 climbers found. No changes made."]
         if abs(p1_pos - p2_pos) != 1:
             return ["An invalid match was detected: Players are not adjacent. No changes made."]
-        messages = []
+        messages = [self.players[p1_pos].username + " defeats " + self.players[p2_pos].username]
         self.players[p1_pos].climbing = True
         self.players[p2_pos].climbing = False
         # If user is boss and loses, move to bottom and convert 5 orange => blue
         if p2_pos == 0:
             messages += [self.players[p2_pos].username + " has lost the :crown: to " + self.players[p1_pos].username]
-            blue_diamonds = self.players[p2_pos].orange_diamonds // 5
-            if blue_diamonds > 0:
-                self.players[p2_pos].blue_diamonds += blue_diamonds
-                messages += [self.players[p2_pos].username + " has gained a :large_blue_diamond: and descends"]
+            new_blue_diamonds = self.players[p2_pos].orange_diamonds // 5
             self.players[p2_pos].orange_diamonds %= 5
             self.players[p2_pos].climbing = True
-            self.players = self.players[1:] + [self.players[0]]  # move player to end
+            if new_blue_diamonds > 0:
+                self.players[p2_pos].blue_diamonds += new_blue_diamonds
+                messages += [self.players[p2_pos].username + " has gained a :large_blue_diamond: and descends"]
+                self.players = self.players[1:] + [self.players[0]]  # move player to end
+            else:  # Move them down how many orange diamonds they gained + 1
+                num_down = self.players[p2_pos].orange_diamonds + 2
+                self.players = self.players[1:num_down] + [self.players[0]] + self.players[num_down:]
         # If winner is higher in array (lower in ladder), players switch places
         elif p1_pos > p2_pos:
-            temp = self.players[p1_pos]
-            self.players[p1_pos] = self.players[p2_pos]
-            self.players[p2_pos] = temp
-            messages += [self.players[p2_pos].username + " has lost to " + self.players[p1_pos].username]
+            self.players[p1_pos], self.players[p2_pos] = self.players[p2_pos], self.players[p1_pos]
         # If user is boss and wins, add an orange diamond
         if p1_pos == 0:
             messages += [self.players[p1_pos].username + " has defended the :crown: and gains :small_orange_diamond:"]
@@ -285,8 +286,6 @@ class BossPile:
                 prev_player_climbing = player.climbing
             bosspile_text += '\n'
         return bosspile_text
-
-
 
 
 client.run(TOKEN)
