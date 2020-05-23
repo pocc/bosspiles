@@ -26,7 +26,7 @@ async def on_message(message):
         print(f"Received message `{message.content}`")
         args = shlex.split(message.content[3:])
         if len(args) < 2:
-            await send_help(message.channel)
+            await send_help(message.author)
             return
         if args[0] not in ["add", "win", "remove", "active"]:
             await message.channel.send(f"`!bp {args[0]}` is not recognized subcommand. See `!bp`.")
@@ -95,9 +95,9 @@ async def send_table_embed(message, game, active_players, inactive_players):
     await message.channel.send(embed=retmsg)
 
 
-async def send_help(channel):
+async def send_help(author):
     """Send the user a message explaining what this bot does."""
-    await channel.send("""Bosspile Bot : Manage bosspiles for you automagically
+    await author.send("""Bosspile Bot : Manage bosspiles for you automagically
 `Available Commands`
 `==================`
     
@@ -247,8 +247,8 @@ class BossPile:
         # Crown is pointless because it only signifies leader
         bosspile_text = bosspile_text.replace(":crown:", "")
         player_lines = bosspile_text.strip().split('\n')
-        # regex: https://regex101.com/r/iF4cVx/1
-        regex = re.compile(r"(?:^|\n)\s*(?::[a-z_]*: ?)* *(\w[a-zA-Z0-9 ]+\w) *(?::[a-z_]*:)*")
+        # regex: https://regex101.com/r/iF4cVx/3
+        regex = re.compile(r"(?:^|\n)\s*(?::[a-z_]*: ?)* *(\w+(?: \w+)*) *(?::[a-z_]*:)*")
         all_player_data = []
         for i in range(len(player_lines)):
             player_text = player_lines[i]
