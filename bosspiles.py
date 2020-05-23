@@ -28,6 +28,9 @@ async def on_message(message):
         if len(args) < 2:
             await send_help(message.channel)
             return
+        if args[0] not in ["add", "win", "remove", "active"]:
+            await message.channel.send(f"`!bp {args[0]}` is not recognized subcommand. See `!bp`.")
+            return
         if args[0] in ["add", "win", "remove"] and len(args) != 2:
             await message.channel.send(f"`!bp {args[1]}` requires 3 arguments. See `!bp`.")
             return
@@ -51,25 +54,25 @@ async def on_message(message):
             await message.channel.send("This channel has no bosspile! Pin your bosspile message and try again.")
             return
         bosspile = BossPile("Can't stop", bp_message.content)
-        if args[0] == "win":
+        if args[0].startswith("win"):
             victor = args[1]
             win_messages = bosspile.win(victor)
             [await message.channel.send(m) for m in win_messages]
-        elif args[0] == "add":
+        elif args[0].startswith("add"):
             player_name = args[1]
             bosspile.add(player_name)
             await message.channel.send(f"{player_name} has been added.")
-        elif args[0] == "remove":
+        elif args[0].startswith("remove"):
             player_name = args[1]
             bosspile.remove(player_name)
             await message.channel.send(f"{player_name} has been removed.")
-        elif args[0] == "active":
+        elif args[0].startswith("active"):
             player_name = args[1]
             state = args[2].lower() == "true"
             bosspile.change_active_status(player_name, state)
             await message.channel.send(f"{player_name} is now {'in'*(not state)}active.")
         else:
-            await message.channel.send(f"Unrecognized command {args[1]}. Run `!bp`.")
+            await message.channel.send(f"Unrecognized command {args[0]}. Run `!bp`.")
         new_bosspile = bosspile.generate_bosspile()
         if new_bosspile != bp_message.content:
             if edit_existing_bp:
