@@ -118,7 +118,7 @@ async def send_help(channel):
     
     **win**
         You won against Bob. (You don't need to include his name because of ^^ emojis):
-            `!bg win Alice`
+            `!bp win Alice`
         
         Expected Output includes result, as well as all new matches:
             `Alice defeats Bob`
@@ -126,21 +126,21 @@ async def send_help(channel):
             `Harriett ⚔ Ian`
     **add**
         You want to add player Charlie:
-            `!bg add Charlie`
+            `!bp add Charlie`
         
         Expected Output:
             `Charlie has been added.`
     
     **remove**
         You want to remove player Dan:
-            `!bg remove Dan`
+            `!bp remove Dan`
         
         Expected Output:
             `Dan has been removed.`
 
     **active**
         You want to make Eddie inactive and put a timer before his name:
-            `!bg active Eddie false`
+            `!bp active Eddie false`
         
         Expected Output:
             `Eddie is now inactive.`
