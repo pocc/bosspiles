@@ -81,11 +81,12 @@ class BossPile:
         self.players[-1].climbing = True
 
     def remove(self, player_name):
-        """Delete a player from the leaderboard."""
+        """Delete a player from the leaderboard. Returns whether there was a successful deletion or not."""
         for i in range(len(self.players)):
             if player_name == self.players[i].username:
                 del self.players[i]
-                break
+                return True
+        return False
 
     def change_active_status(self, player_name, state):
         """Make a player active/inactive."""

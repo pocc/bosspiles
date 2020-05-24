@@ -64,8 +64,11 @@ async def on_message(message):
             await message.channel.send(f"{player_name} has been added.")
         elif args[0].startswith("remove"):
             player_name = args[1]
-            bosspile.remove(player_name)
-            await message.channel.send(f"{player_name} has been removed.")
+            was_player_removed = bosspile.remove(player_name)
+            if was_player_removed:
+                await message.channel.send(f"{player_name} has been removed.")
+            else:
+                await message.channel.send(f"{player_name} does not exist in the bosspile and so was not removed.")
         elif args[0].startswith("active"):
             player_name = args[1]
             state = args[2].lower() == "true"
