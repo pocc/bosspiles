@@ -50,9 +50,9 @@ class BossPile:
                 self.players[p2_pos].blue_diamonds += new_blue_diamonds
                 messages += [f"{p2_name} has gained a :large_blue_diamond: and is now at the bottom."]
                 self.players = self.players[1:] + [self.players[0]]  # move player to end
-            else:  # Move them down how many orange diamonds they gained + 1
+            else:  # Move them down how many orange diamonds they gained + 1 fencepost error
                 num_down = self.players[p2_pos].orange_diamonds + 1
-                messages += [f"{p2_name} goes down {str(num_down)} spaces."]
+                messages += [f"{p2_name} goes down {str(num_down - 1)} spaces."]
                 self.players = self.players[1:num_down+1] + [self.players[0]] + self.players[num_down+1:]
         # If winner is higher in array (lower in ladder), players switch places
         elif p1_pos > p2_pos:

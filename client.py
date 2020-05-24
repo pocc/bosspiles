@@ -9,6 +9,12 @@ from keys import TOKEN
 client = discord.Client()
 
 
+class GracefulCoroutineExit(Exception):
+    """Return from the child function without exiting.
+    via https://stackoverflow.com/questions/60975800/return-from-parent-function-in-a-child-function"""
+    pass
+
+
 @client.event
 async def on_ready():
     """Let the user who started the bot know that the connection succeeded."""
@@ -26,73 +32,90 @@ async def on_message(message):
 
     # Like $bp command
     if message.content.startswith('!bp'):
-        print(f"Received message `{message.content}`")
-        args = shlex.split(message.content[3:])
-        if len(args) == 0:  # on `!bp`
-            await send_help(message.author)
-            return
-        if args[0] not in ["add", "win", "remove", "active", "print"]:
-            await message.channel.send(f"`!bp {args[0]}` is not recognized subcommand. See `!bp`.")
-            return
-        if args[0] in ["add", "win", "remove"] and len(args) != 2:
-            await message.channel.send(f"`!bp {args[0]}` requires 3 arguments. See `!bp`.")
-            return
-        if args[0] in ["active"] and len(args) != 3:
-            await message.channel.send(f"`!bp {args[0]}` requires 4 arguments. See `!bp`.")
-            return
-        pins = await message.channel.pins()
-        if len(pins) == 0:
-            await message.channel.send("This channel has no pins (a pinned bosspile is required)")
-            return
-        bp_message = None
-        edit_existing_bp = False
-        for pin in pins:
-            if (":crown:" in pin.content or "👑" in pin.content) \
-                    and (":arrow_double_up:" in pin.content or "⏫" in pin.content):
-                bp_message = pin
-                # We can only edit our own messages
-                edit_existing_bp = pin.author == client.user
-                break
-        if not bp_message:
-            await message.channel.send("This channel has no bosspile! Pin your bosspile message and try again.")
-            return
-        # We can change the board game name, but I'm not sure it matters.
-        bosspile = BossPile("Can't stop", bp_message.content)
-        if args[0].startswith("win"):
-            victor = args[1]
-            win_messages = bosspile.win(victor)
-            [await message.channel.send(m) for m in win_messages]
-        elif args[0].startswith("add"):
-            player_name = args[1]
-            bosspile.add(player_name)
-            await message.channel.send(f"{player_name} has been added.")
-        elif args[0].startswith("remove"):
-            player_name = args[1]
-            if len(bosspile.players) <= 2:
-                await message.channel.send("A bosspile must have at least 2 players. Skipping player deletion.")
-            was_player_removed = bosspile.remove(player_name)
-            if was_player_removed:
-                await message.channel.send(f"{player_name} has been removed.")
-            else:
-                await message.channel.send(f"{player_name} does not exist in the bosspile and so was not removed.")
-        elif args[0].startswith("active"):
-            player_name = args[1]
-            state = args[2].lower() == "true"
-            bosspile.change_active_status(player_name, state)
-            await message.channel.send(f"{player_name} is now {'in'*(not state)}active.")
-        elif args[0].startswith("print"):
-            new_bosspile = bosspile.generate_bosspile()
-            await message.channel.send(f"`{new_bosspile}`")
+        await run_bosspiles(message)
+
+
+async def parse_args(message):
+    """Parse the args and tell the user if they are not valid."""
+    args = shlex.split(message.content[3:])
+    if len(args) == 0:  # on `!bp`
+        await send_help(message.author)
+    elif args[0] not in ["add", "win", "remove", "active", "print"]:
+        await message.channel.send(f"`!bp {args[0]}` is not recognized subcommand. See `!bp`.")
+    elif args[0] in ["add", "win", "remove"] and len(args) != 2:
+        await message.channel.send(f"`!bp {args[0]}` requires 3 arguments. See `!bp`.")
+    elif args[0] in ["active"] and len(args) != 3:
+        await message.channel.send(f"`!bp {args[0]}` requires 4 arguments. See `!bp`.")
+    else:
+        return args
+    raise GracefulCoroutineExit("Problem parsing arguments.")  # Returns this on any error condition
+
+
+async def get_pinned_bosspile(message):
+    """Get the pinned messages if there are any."""
+    pins = await message.channel.pins()
+    if len(pins) == 0:
+        await message.channel.send("This channel has no pins (a pinned bosspile is required)")
+        raise GracefulCoroutineExit("Channel has no pins!")
+    for pin in pins:
+        if (":crown:" in pin.content or "👑" in pin.content) \
+                and (":arrow_double_up:" in pin.content or "⏫" in pin.content):
+            return pin
+    await message.channel.send("This channel has no bosspile! Pin your bosspile message and try again.")
+    raise GracefulCoroutineExit("Channel has pins but no bosspile!")
+
+
+async def execute_command(message, args, bosspile):
+    """Execute the !bp command the user has entered."""
+    if args[0].startswith("win"):
+        victor = args[1]
+        win_messages = bosspile.win(victor)
+        [await message.channel.send(m) for m in win_messages]
+    elif args[0].startswith("add"):
+        player_name = args[1]
+        bosspile.add(player_name)
+        await message.channel.send(f"{player_name} has been added.")
+    elif args[0].startswith("remove"):
+        player_name = args[1]
+        if len(bosspile.players) <= 2:
+            await message.channel.send("A bosspile must have at least 2 players. Skipping player deletion.")
+        was_player_removed = bosspile.remove(player_name)
+        if was_player_removed:
+            await message.channel.send(f"{player_name} has been removed.")
         else:
-            await message.channel.send(f"Unrecognized command {args[0]}. Run `!bp`.")
-        new_bosspile = bosspile.generate_bosspile()
-        if new_bosspile != bp_message.content:
-            if edit_existing_bp:
-                await bp_message.edit(content=new_bosspile)
-            else:
-                new_msg = await message.channel.send(new_bosspile)
-                await new_msg.pin()
-                await message.channel.send("Created new bosspile pin because this bot can only edit its own messages.")
+            await message.channel.send(f"{player_name} does not exist in the bosspile and so was not removed.")
+    elif args[0].startswith("active"):
+        player_name = args[1]
+        state = args[2].lower() == "true"
+        bosspile.change_active_status(player_name, state)
+        await message.channel.send(f"{player_name} is now {'in'*(not state)}active.")
+    elif args[0].startswith("print"):
+        bosspile_to_be_printed = bosspile.generate_bosspile()
+        await message.channel.send(bosspile_to_be_printed)
+    else:
+        await message.channel.send(f"Unrecognized command {args[0]}. Run `!bp`.")
+
+
+async def run_bosspiles(message):
+    """Run the bosspiles program ~ main()."""
+    print(f"Received message `{message.content}`")
+    args = await parse_args(message)
+
+    bp_pin = await get_pinned_bosspile(message)
+    # We can only edit our own messages
+    edit_existing_bp = bp_pin.author == client.user
+    # We can change the board game name, but I'm not sure it matters.
+    bosspile = BossPile("Can't stop", bp_pin.content)
+    await execute_command(message, args, bosspile)
+
+    new_bosspile = bosspile.generate_bosspile()
+    if new_bosspile != bp_pin.content:
+        if edit_existing_bp:
+            await bp_pin.edit(content=new_bosspile)
+        else:
+            new_msg = await message.channel.send(new_bosspile)
+            await new_msg.pin()
+            await message.channel.send("Created new bosspile pin because this bot can only edit its own messages.")
 
 
 async def send_table_embed(message, game, active_players, inactive_players):
