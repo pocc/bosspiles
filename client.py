@@ -43,7 +43,8 @@ async def parse_args(message):
     args = shlex.split(message.content[3:])
     if len(args) == 0:  # on `!bp`
         await send_help(message.author)
-    elif args[0] not in ["new", "win", "edit", "remove", "active", "print"]:
+    # only first letter has to match
+    elif args[0][0] not in [w[0] for w in ["new", "win", "edit", "remove", "active", "print"]]:
         await message.channel.send(f"`!bp {args[0]}` is not a recognized subcommand. See `!bp`.")
     elif args[0] in ["new", "edit", "win", "remove"] and len(args) != 2:
         await message.channel.send(f"`!bp {args[0]}` requires 3 arguments. See `!bp`.")
