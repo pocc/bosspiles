@@ -45,7 +45,6 @@ class BossPile:
             messages += [f"{p2_name} has lost the :crown: to {p1_name}"]
             new_blue_diamonds = self.players[p2_pos].orange_diamonds // 5
             self.players[p2_pos].orange_diamonds %= 5
-            self.players[p2_pos].climbing = True
             if new_blue_diamonds > 0:
                 self.players[p2_pos].blue_diamonds += new_blue_diamonds
                 messages += [f"{p2_name} has gained a :large_blue_diamond: and is now at the bottom."]

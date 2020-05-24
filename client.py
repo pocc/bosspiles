@@ -133,8 +133,13 @@ async def send_table_embed(message, game, active_players, inactive_players):
 async def send_help(author):
     """Send the user a message explaining what this bot does."""
     await author.send("""Bosspile Bot : Manage bosspiles for you automagically
-`Available Commands`
-`==================`
+    
+This bot needs to manage its own pinned message. If it finds a pinned bosspile,
+it will repin it as its own message. A pinned bosspile must at least have a crown and climber.
+To reset this bot's bosspile, delete its pinned message, make sure there is 
+another bosspile pin, and then run any command.
+
+__**Available Commands**__
     
     **win** <player 1> <player 2>
         Updates the bosspile with a win by player 1 over player 2
@@ -150,9 +155,11 @@ async def send_help(author):
     
     **print**
         Prints the current bosspile as a new message.
+        
+    **-d**
+        Add this flag to print before and after operation.  
     
-`Examples`
-`========`
+__**Examples**__
     
     For these examples, your discord name is `Alice`.
     All of these options change the bosspile.
