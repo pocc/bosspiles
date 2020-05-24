@@ -25,7 +25,7 @@ async def on_message(message):
     if message.content.startswith('!bp'):
         print(f"Received message `{message.content}`")
         args = shlex.split(message.content[3:])
-        if len(args) < 2:
+        if len(args) == 0:  # on `!bp`
             await send_help(message.author)
             return
         if args[0] not in ["add", "win", "remove", "active"]:
@@ -53,6 +53,7 @@ async def on_message(message):
         if not bp_message:
             await message.channel.send("This channel has no bosspile! Pin your bosspile message and try again.")
             return
+        # We can change the board game name, but I'm not sure it matters.
         bosspile = BossPile("Can't stop", bp_message.content)
         if args[0].startswith("win"):
             victor = args[1]
@@ -74,6 +75,9 @@ async def on_message(message):
             state = args[2].lower() == "true"
             bosspile.change_active_status(player_name, state)
             await message.channel.send(f"{player_name} is now {'in'*(not state)}active.")
+        elif args[0].startswith("print"):
+            new_bosspile = bosspile.generate_bosspile()
+            await message.channel.send(f"`{new_bosspile}`")
         else:
             await message.channel.send(f"Unrecognized command {args[0]}. Run `!bp`.")
         new_bosspile = bosspile.generate_bosspile()
@@ -115,6 +119,9 @@ async def send_help(author):
 
     **active** <player> <"true" or "false">
         Change the status of a player to active or inactive (timer icon)
+    
+    **print**
+        Prints the current bosspile as a new message.
     
 `Examples`
 `========`
