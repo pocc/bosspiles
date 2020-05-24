@@ -21,48 +21,53 @@ class BossPile:
 
         self.players = self.parse_bosspile(bosspile_text)
 
-    def win(self, p1):
-        """p1 has won the game. p1 is climbing. p2 stops climbing.
-        The list of messages sent as a result of winning are saved in the messages list."""
-        p1_pos = -1
+    def find_player_pos(self, player_name):
+        """Find the player position in the player list or -1."""
         for i in range(len(self.players)):
             player = self.players[i]
-            if player.username == p1:
-                p1_pos = i
-        if p1_pos == -1:
-            return [f"`{p1}` is not a valid player name. You may need to quote."]
+            if player.username.startswith(player_name):
+                return i
+        return -1
+
+    def win(self, victor):
+        """p1 has won the game. p1 is climbing. p2 stops climbing.
+        The list of messages sent as a result of winning are saved in the messages list."""
+        victor_pos = self.find_player_pos(victor)
+        if victor_pos == -1:
+            return [f"`{victor}` is not a valid player name. You may need to quote."]
         # If you are climbing, then you move and you played the person above.
-        if self.players[p1_pos].climbing:
-            p2_pos = p1_pos - 1
+        if self.players[victor_pos].climbing:
+            loser_pos = victor_pos - 1
         else:  # Otherwise you defended a challenge
-            p2_pos = p1_pos + 1
-        if not (self.players[p1_pos].climbing ^ self.players[p2_pos].climbing):
+            loser_pos = victor_pos + 1
+        if not (self.players[victor_pos].climbing ^ self.players[loser_pos].climbing):
             return ["An invalid match was detected: 0 or 2 climbers found. No changes made."]
-        messages = [self.players[p1_pos].username + " defeats " + self.players[p2_pos].username]
-        self.players[p1_pos].climbing = True
-        self.players[p2_pos].climbing = False
+        messages = [self.players[victor_pos].username + " defeats " + self.players[loser_pos].username]
+        self.players[victor_pos].climbing = True
+        self.players[loser_pos].climbing = False
         # If user is boss and loses, move to bottom and convert 5 orange => blue
-        if p2_pos == 0:
-            p1_name = self.players[p1_pos].username
-            p2_name = self.players[p2_pos].username
+        if loser_pos == 0:
+            p1_name = self.players[victor_pos].username
+            p2_name = self.players[loser_pos].username
             messages += [f"{p2_name} has lost the :crown: to {p1_name}"]
-            new_blue_diamonds = self.players[p2_pos].orange_diamonds // 5
-            self.players[p2_pos].orange_diamonds %= 5
+            new_blue_diamonds = self.players[loser_pos].orange_diamonds // 5
+            self.players[loser_pos].orange_diamonds %= 5
             if new_blue_diamonds > 0:
-                self.players[p2_pos].blue_diamonds += new_blue_diamonds
+                self.players[loser_pos].blue_diamonds += new_blue_diamonds
                 messages += [f"{p2_name} has gained a :large_blue_diamond: and is now at the bottom."]
                 self.players = self.players[1:] + [self.players[0]]  # move player to end
             else:  # Move them down how many orange diamonds they gained + 1 fencepost error
-                num_down = self.players[p2_pos].orange_diamonds + 1
+                num_down = self.players[loser_pos].orange_diamonds + 1
                 messages += [f"{p2_name} goes down {str(num_down - 1)} spaces."]
                 self.players = self.players[1:num_down+1] + [self.players[0]] + self.players[num_down+1:]
         # If winner is higher in array (lower in ladder), players switch places
-        elif p1_pos > p2_pos:
-            self.players[p1_pos], self.players[p2_pos] = self.players[p2_pos], self.players[p1_pos]
+        elif victor_pos > loser_pos:
+            self.players[victor_pos], self.players[loser_pos] = self.players[loser_pos], self.players[victor_pos]
         # If user is boss and wins, add an orange diamond
-        if p1_pos == 0:
-            messages += [self.players[p1_pos].username + " has defended the :crown: and gains :small_orange_diamond:"]
-            self.players[p1_pos].orange_diamonds += 1
+        if victor_pos == 0:
+            messages += [self.players[victor_pos].username
+                         + " has defended the :crown: and gains :small_orange_diamond:"]
+            self.players[victor_pos].orange_diamonds += 1
         # Last player should always be climbing.
         self.players[-1].climbing = True
         new_matches = self.generate_matches()
@@ -87,12 +92,12 @@ class BossPile:
     def edit(self, new_line):
         """Edit an existing player."""
         new_player = self.parse_bosspile_line(new_line)
-        for i in range(len(self.players)):
-            player = self.players[i]
-            if player.username == new_player.username:
-                self.players[i] = self.parse_bosspile_line(new_line)
-                return player.username
-        return f"Player not found in `{new_line}`. No line"
+        new_player_pos = self.find_player_pos(new_player.username)
+        if new_player_pos != -1:
+            old_username = self.players[new_player_pos].username
+            self.players[new_player_pos] = self.parse_bosspile_line(new_line)
+            return old_username
+        return f"Player not found in `{new_line}`. No line changed"
 
     def remove(self, player_name):
         """Delete a player from the leaderboard. Returns whether there was a successful deletion or not."""
