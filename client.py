@@ -13,6 +13,9 @@ client = discord.Client()
 async def on_ready():
     """Let the user who started the bot know that the connection succeeded."""
     print(f'{client.user.name} has connected to Discord!')
+    # Create words under bot that say "Listening to !bga"
+    listening_to_help = discord.Activity(type=discord.ActivityType.listening, name="!bp")
+    await client.change_presence(activity=listening_to_help)
 
 
 @client.event
@@ -28,7 +31,7 @@ async def on_message(message):
         if len(args) == 0:  # on `!bp`
             await send_help(message.author)
             return
-        if args[0] not in ["add", "win", "remove", "active"]:
+        if args[0] not in ["add", "win", "remove", "active", "print"]:
             await message.channel.send(f"`!bp {args[0]}` is not recognized subcommand. See `!bp`.")
             return
         if args[0] in ["add", "win", "remove"] and len(args) != 2:
