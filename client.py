@@ -30,8 +30,7 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    # Like $bp command
-    if message.content.startswith('!bp'):
+    if message.content.startswith('$$') or message.content.startswith('!bp'):
         try:
             await run_bosspiles(message)
         except GracefulCoroutineExit:
@@ -40,7 +39,8 @@ async def on_message(message):
 
 async def parse_args(message):
     """Parse the args and tell the user if they are not valid."""
-    args = shlex.split(message.content[3:])
+    with_bp = message.content[0] == "!"
+    args = shlex.split(message.content[2+with_bp:])
     if len(args) == 0:  # on `!bp`
         await send_help(message.author)
     # only first letter has to match
@@ -147,6 +147,8 @@ This bot needs to manage its own pinned message. If it finds a pinned bosspile,
 it will repin it as its own message. A pinned bosspile must at least have a crown and climber.
 To reset this bot's bosspile, delete its pinned message, make sure there is 
 another bosspile pin, and then run any command.
+
+You can use `$$` in place of `!bp `.
 
 __**Available Commands**__
     
