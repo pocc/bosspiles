@@ -35,10 +35,10 @@ async def on_message(message):
             await message.channel.send(f"`!bp {args[0]}` is not recognized subcommand. See `!bp`.")
             return
         if args[0] in ["add", "win", "remove"] and len(args) != 2:
-            await message.channel.send(f"`!bp {args[1]}` requires 3 arguments. See `!bp`.")
+            await message.channel.send(f"`!bp {args[0]}` requires 3 arguments. See `!bp`.")
             return
         if args[0] in ["active"] and len(args) != 3:
-            await message.channel.send(f"`!bp {args[1]}` requires 4 arguments. See `!bp`.")
+            await message.channel.send(f"`!bp {args[0]}` requires 4 arguments. See `!bp`.")
             return
         pins = await message.channel.pins()
         if len(pins) == 0:
