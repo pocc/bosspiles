@@ -61,6 +61,8 @@ class BossPile:
         if p1_pos == 0:
             messages += [self.players[p1_pos].username + " has defended the :crown: and gains :small_orange_diamond:"]
             self.players[p1_pos].orange_diamonds += 1
+        # Last player should always be climbing.
+        self.players[-1].climbing = True
         new_matches = self.generate_matches()
         for match in new_matches:
             messages += [f"{self.players[match[0]].username} :crossed_swords: {self.players[match[1]].username}"]

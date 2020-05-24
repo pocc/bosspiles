@@ -65,6 +65,8 @@ async def on_message(message):
             await message.channel.send(f"{player_name} has been added.")
         elif args[0].startswith("remove"):
             player_name = args[1]
+            if len(bosspile.players) <= 2:
+                await message.channel.send("A bosspile must have at least 2 players. Skipping player deletion.")
             was_player_removed = bosspile.remove(player_name)
             if was_player_removed:
                 await message.channel.send(f"{player_name} has been removed.")
