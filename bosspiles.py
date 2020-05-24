@@ -16,6 +16,9 @@ class BossPile:
     """Class to keep track of players and their rankings"""
     def __init__(self, game: str, bosspile_text: str):
         self.game = game
+        # See regex w examples: https://regex101.com/r/iF4cVx/3 , used to parse one player line
+        self.player_line_re = re.compile(r"(?:^|\n)\s*(?::[a-z_]*: ?)* *(\w+(?: \w+)*) *(?::[a-z_]*:)*")
+
         self.players = self.parse_bosspile(bosspile_text)
 
     def win(self, p1):
@@ -81,6 +84,16 @@ class BossPile:
         self.players.append(new_player)
         self.players[-1].climbing = True
 
+    def edit(self, new_line):
+        """Edit an existing player."""
+        new_player = self.parse_bosspile_line(new_line)
+        for i in range(len(self.players)):
+            player = self.players[i]
+            if player.username == new_player.username:
+                self.players[i] = self.parse_bosspile_line(new_line)
+                return player.username
+        return f"Player not found in `{new_line}`. No line"
+
     def remove(self, player_name):
         """Delete a player from the leaderboard. Returns whether there was a successful deletion or not."""
         for i in range(len(self.players)):
@@ -95,30 +108,36 @@ class BossPile:
             if player_name == self.players[i].username:
                 self.players[i].active = state
 
-    @staticmethod
-    def parse_bosspile(bosspile_text: str):
+    def parse_bosspile(self, bosspile_text: str):
         """Read the bosspile text and convert it into players"""
-        # Replace emojis with discord names
-        bosspile_text = bosspile_text.replace("👑", ":crown:").replace("🔸", ":small_orange_diamond:")\
-            .replace("🔶", ":large_orange_diamond:").replace("🔷", ":large_blue_diamond:")\
-            .replace("⏫", ":arrow_double_up:").replace("💭", ":thought_balloon:")
         # Crown is pointless because it only signifies leader
         bosspile_text = bosspile_text.replace(":crown:", "")
         player_lines = bosspile_text.strip().split('\n')
-        # regex: https://regex101.com/r/iF4cVx/3
-        regex = re.compile(r"(?:^|\n)\s*(?::[a-z_]*: ?)* *(\w+(?: \w+)*) *(?::[a-z_]*:)*")
         all_player_data = []
-        for i in range(len(player_lines)):
-            player_text = player_lines[i]
-            orange_diamonds = player_text.count(":small_orange_diamond:")
-            orange_diamonds += 5 * player_text.count(":large_orange_diamond:")
-            blue_diamonds = player_text.count(":large_blue_diamond:")
-            username = regex.findall(player_text)[0]
-            climbing = ":arrow_double_up:" in player_text or ":thought_balloon:" in player_text
-            active = ":timer:" not in player_text
-            player = PlayerData(username, orange_diamonds, blue_diamonds, climbing, active)
+        for player_line in player_lines:
+            player = self.parse_bosspile_line(player_line)
             all_player_data.append(player)
         return all_player_data
+
+    @staticmethod
+    def parse_emojis_as_discord_text(bosspile_text):
+        """Replace emojis with discord emoji names with colons."""
+        bosspile_text = bosspile_text.replace("👑", ":crown:").replace("🔸", ":small_orange_diamond:")\
+            .replace("🔶", ":large_orange_diamond:").replace("🔷", ":large_blue_diamond:")\
+            .replace("⏫", ":arrow_double_up:").replace("💭", ":thought_balloon:")
+        return bosspile_text
+
+    def parse_bosspile_line(self, player_line: str):
+        """Parse one line of the bosspile and return a player line."""
+        player_line = self.parse_emojis_as_discord_text(player_line)
+        orange_diamonds = player_line.count(":small_orange_diamond:")
+        orange_diamonds += 5 * player_line.count(":large_orange_diamond:")
+        blue_diamonds = player_line.count(":large_blue_diamond:")
+        username = self.player_line_re.findall(player_line)[0]
+        climbing = ":arrow_double_up:" in player_line or ":thought_balloon:" in player_line
+        active = ":timer:" not in player_line
+        player = PlayerData(username, orange_diamonds, blue_diamonds, climbing, active)
+        return player
 
     def generate_bosspile(self):
         """Generate the bosspile text from the stored configuration."""
