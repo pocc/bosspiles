@@ -42,7 +42,7 @@ class BossPile:
         if p2_pos == 0:
             p1_name = self.players[p1_pos].username
             p2_name = self.players[p2_pos].username
-            messages += [f"{p1_name} has lost the :crown: to {p2_name}"]
+            messages += [f"{p2_name} has lost the :crown: to {p1_name}"]
             new_blue_diamonds = self.players[p2_pos].orange_diamonds // 5
             self.players[p2_pos].orange_diamonds %= 5
             self.players[p2_pos].climbing = True
@@ -52,7 +52,7 @@ class BossPile:
                 self.players = self.players[1:] + [self.players[0]]  # move player to end
             else:  # Move them down how many orange diamonds they gained + 1
                 num_down = self.players[p2_pos].orange_diamonds + 1
-                messages += [f"{p1_name} goes down {str(num_down)} spaces."]
+                messages += [f"{p2_name} goes down {str(num_down)} spaces."]
                 self.players = self.players[1:num_down+1] + [self.players[0]] + self.players[num_down+1:]
         # If winner is higher in array (lower in ladder), players switch places
         elif p1_pos > p2_pos:
