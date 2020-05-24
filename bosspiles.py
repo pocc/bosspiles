@@ -22,19 +22,26 @@ class BossPile:
         self.players = self.parse_bosspile(bosspile_text)
 
     def find_player_pos(self, player_name):
-        """Find the player position in the player list or -1."""
+        """Find the player position in the player list or -1 and error"""
+        player_pos = -1
+        err = ""
         for i in range(len(self.players)):
             player = self.players[i]
             if player.username.startswith(player_name):
-                return i
-        return -1
+                # If there's ambiguity, treat it as not found.
+                if player_pos != -1:
+                    return player_pos, f"Multiple matching players found at {player_pos} and {i}. No changes made."
+                player_pos = i
+        return player_pos, err
 
     def win(self, victor):
         """p1 has won the game. p1 is climbing. p2 stops climbing.
         The list of messages sent as a result of winning are saved in the messages list."""
-        victor_pos = self.find_player_pos(victor)
+        victor_pos, err_msg = self.find_player_pos(victor)
         if victor_pos == -1:
             return [f"`{victor}` is not a valid player name. You may need to quote."]
+        elif len(err_msg) > 0:
+            return [err_msg]
         # If you are climbing, then you move and you played the person above.
         if self.players[victor_pos].climbing:
             loser_pos = victor_pos - 1
@@ -85,19 +92,24 @@ class BossPile:
 
     def add(self, player_name):
         """Add a player to the very end."""
+        if self.find_player_pos(player_name):
+            return f"{player_name} is already in the bosspile."
         new_player = PlayerData(player_name)
         self.players.append(new_player)
         self.players[-1].climbing = True
+        return f"{player_name} has been added successfully."
 
     def edit(self, new_line):
         """Edit an existing player."""
         new_player = self.parse_bosspile_line(new_line)
-        new_player_pos = self.find_player_pos(new_player.username)
+        new_player_pos, err_msg = self.find_player_pos(new_player.username)
         if new_player_pos != -1:
             old_username = self.players[new_player_pos].username
             self.players[new_player_pos] = self.parse_bosspile_line(new_line)
-            return old_username
-        return f"Player not found in `{new_line}`. No line changed"
+            return f"{old_username} is now️ {new_line}"
+        elif len(err_msg) > 0:
+            return err_msg
+        return f"Player not found in `{new_line}`. No line changed."
 
     def remove(self, player_name):
         """Delete a player from the leaderboard. Returns whether there was a successful deletion or not."""

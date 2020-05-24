@@ -46,9 +46,9 @@ async def parse_args(message):
     # only first letter has to match
     elif args[0][0] not in [w[0] for w in ["new", "win", "edit", "remove", "active", "print"]]:
         await message.channel.send(f"`!bp {args[0]}` is not a recognized subcommand. See `!bp`.")
-    elif args[0] in ["new", "edit", "win", "remove"] and len(args) != 2:
+    elif args[0][0] in [w[0] for w in ["new", "edit", "win", "remove"]] and len(args) != 2:
         await message.channel.send(f"`!bp {args[0]}` requires 3 arguments. See `!bp`.")
-    elif args[0] in ["active"] and len(args) != 3:
+    elif args[0][0] in [w[0] for w in ["active"]] and len(args) != 3:
         await message.channel.send(f"`!bp {args[0]}` requires 4 arguments. See `!bp`.")
     else:
         return args
@@ -78,12 +78,12 @@ async def execute_command(message, args, bosspile):
         [await message.channel.send(m) for m in win_messages]
     elif args[0].startswith("n"):
         player_name = args[1]
-        bosspile.add(player_name)
-        await message.channel.send(f"{player_name} has been added.")
+        ret_msg = bosspile.add(player_name)
+        await message.channel.send(ret_msg)
     elif args[0].startswith("e"):
         new_line = args[1]
-        old_line = bosspile.edit(new_line)
-        await message.channel.send(f"{old_line} ➡️ {new_line}")
+        ret_msg = bosspile.edit(new_line)
+        await message.channel.send(ret_msg)
     elif args[0].startswith("r"):
         player_name = args[1]
         if len(bosspile.players) <= 2:
