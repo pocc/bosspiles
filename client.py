@@ -140,74 +140,63 @@ async def send_table_embed(message, game, active_players, inactive_players):
 
 async def send_help(author):
     """Send the user a message explaining what this bot does."""
-    await author.send("""Bosspile Bot : Manage bosspiles for you automagically
-    
+    help_msg = """Bosspile Bot: Manage your bosspiles like a wizard
+
 This bot needs to manage its own pinned message. If it finds a pinned bosspile,
-it will repin it as its own message. A pinned bosspile must at least have a crown and climber.
-To reset this bot's bosspile, delete its pinned message, make sure there is 
-another bosspile pin, and then run any command.
+it will repin it as its own message. A pinned bosspile must have a crown and climber.
+Reset this bot's bosspile by deleting its pinned message, ensuring there is a bosspile
+pinned by a person and then run `$$p`.
+
+Shorten a command to the first letter like `$$w` for `$$ win`.
 
 __**Available Commands**__
-    
-    **win** <player 1> <player 2>
-        Updates the bosspile with a win by player 1 over player 2
 
-    **new** <player>
-        Add a player to the bottom of the bosspile
+` 
+    * win <player 1> <player 2>:  Updates the bosspile with a win by player 1 over player 2
+    * new <player>:               Add a player to the bottom of the bosspile
+    * edit "<new player line>":   Change the line for a player to the new one.
+    * remove <player>:            Remove a player from the bosspile
+    * active <player> <T/F>:      Change the status of a player to active or inactive (timer icon)
+    * print:                      Prints the current bosspile as a new message. 
+`
 
-    **edit** "<new player line>"
-        Change the line for a player to the new one.
-
-    **remove** <player>
-        Remove a player from the bosspile
-
-    **active** <player> <"true" or "false">
-        Change the status of a player to active or inactive (timer icon)
-    
-    **print**
-        Prints the current bosspile as a new message. 
-    
 __**Examples**__
-    
-    For these examples, your discord name is `Alice`.
-    All of these options change the bosspile.
-    
+
+    Your discord name is `Alice` in these examples, all of which change the bosspile.
+
     **win**
         You won against Bob. (You don't need to include his name because of players with ⏫):
-            `$$win Alice`
-        
+            `$$ win Alice`
         Expected Output includes result, as well as all new matches:
             `Alice defeats Bob`
             `Frank ⚔ Georgia`
             `Harriett ⚔ Ian`
     **new**
         You want to add player Charlie:
-            `$$new Charlie`
-        
+            `$$ new Charlie`
         Expected Output:
             `Charlie has been added.`
-    
+
     **edit**
         You want to edit player "Bob" to add a large blue diamond and climbing
-            `$$edit "🔷Bob⏫"`
-        
+            `$$ edit "🔷Bob⏫"`
         Expected Output:
             `Bob ➡️ 🔷Bob⏫`
-    
+
     **remove**
         You want to remove player Dan:
-            `$$remove Dan`
-        
+            `$$ remove Dan`
         Expected Output:
             `Dan has been removed.`
 
     **active**
         You want to make Eddie inactive and put a timer before his name:
-            `$$active Eddie false`
-        
+            `$$ active Eddie false`
         Expected Output:
             `Eddie is now inactive.`
-""")
+"""
+    truncated_help_msg = help_msg.replace(4*" ", "\t")  # 2000 chars adds up quick
+    await author.send(truncated_help_msg)
 
 
 client.run(TOKEN)
