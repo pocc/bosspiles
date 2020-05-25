@@ -20,7 +20,7 @@ async def on_ready():
     """Let the user who started the bot know that the connection succeeded."""
     print(f'{client.user.name} has connected to Discord!')
     # Create words under bot that say "Listening to !bga"
-    listening_to_help = discord.Activity(type=discord.ActivityType.listening, name="!bp")
+    listening_to_help = discord.Activity(type=discord.ActivityType.listening, name="$$")
     await client.change_presence(activity=listening_to_help)
 
 
@@ -30,7 +30,7 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    if message.content.startswith('$$') or message.content.startswith('!bp'):
+    if message.content.startswith('$$'):
         try:
             await run_bosspiles(message)
         except GracefulCoroutineExit:
@@ -39,17 +39,16 @@ async def on_message(message):
 
 async def parse_args(message):
     """Parse the args and tell the user if they are not valid."""
-    with_bp = message.content[0] == "!"
-    args = shlex.split(message.content[2+with_bp:])
-    if len(args) == 0:  # on `!bp`
+    args = shlex.split(message.content[2:])
+    if len(args) == 0:  # on `$$`
         await send_help(message.author)
     # only first letter has to match
     elif args[0][0] not in [w[0] for w in ["new", "win", "edit", "remove", "active", "print"]]:
-        await message.channel.send(f"`!bp {args[0]}` is not a recognized subcommand. See `!bp`.")
+        await message.channel.send(f"`$$ {args[0]}` is not a recognized subcommand. See `$$`.")
     elif args[0][0] in [w[0] for w in ["new", "edit", "win", "remove"]] and len(args) != 2:
-        await message.channel.send(f"`!bp {args[0]}` requires 3 arguments. See `!bp`.")
+        await message.channel.send(f"`$$ {args[0]}` requires 3 arguments. See `$$`.")
     elif args[0][0] in [w[0] for w in ["active"]] and len(args) != 3:
-        await message.channel.send(f"`!bp {args[0]}` requires 4 arguments. See `!bp`.")
+        await message.channel.send(f"`$$ {args[0]}` requires 4 arguments. See `$$`.")
     else:
         return args
     raise GracefulCoroutineExit("Problem parsing arguments.")  # Returns this on any error condition
@@ -70,7 +69,7 @@ async def get_pinned_bosspile(message):
 
 
 async def execute_command(message, args, bosspile):
-    """Execute the !bp command the user has entered."""
+    """Execute the $$ command the user has entered."""
     args[0] = args[0].lower()
     if args[0].startswith("w"):
         victor = args[1]
@@ -102,7 +101,7 @@ async def execute_command(message, args, bosspile):
         bosspile_to_be_printed = bosspile.generate_bosspile()
         await message.channel.send(bosspile_to_be_printed)
     else:
-        await message.channel.send(f"Unrecognized command {args[0]}. Run `!bp`.")
+        await message.channel.send(f"Unrecognized command {args[0]}. Run `$$`.")
 
 
 async def run_bosspiles(message):
@@ -148,8 +147,6 @@ it will repin it as its own message. A pinned bosspile must at least have a crow
 To reset this bot's bosspile, delete its pinned message, make sure there is 
 another bosspile pin, and then run any command.
 
-You can use `$$` in place of `!bp `.
-
 __**Available Commands**__
     
     **win** <player 1> <player 2>
@@ -177,7 +174,7 @@ __**Examples**__
     
     **win**
         You won against Bob. (You don't need to include his name because of players with ⏫):
-            `!bp win Alice`
+            `$$win Alice`
         
         Expected Output includes result, as well as all new matches:
             `Alice defeats Bob`
@@ -185,28 +182,28 @@ __**Examples**__
             `Harriett ⚔ Ian`
     **new**
         You want to add player Charlie:
-            `!bp new Charlie`
+            `$$new Charlie`
         
         Expected Output:
             `Charlie has been added.`
     
     **edit**
         You want to edit player "Bob" to add a large blue diamond and climbing
-            `!bp edit "🔷Bob⏫"`
+            `$$edit "🔷Bob⏫"`
         
         Expected Output:
             `Bob ➡️ 🔷Bob⏫`
     
     **remove**
         You want to remove player Dan:
-            `!bp remove Dan`
+            `$$remove Dan`
         
         Expected Output:
             `Dan has been removed.`
 
     **active**
         You want to make Eddie inactive and put a timer before his name:
-            `!bp active Eddie false`
+            `$$active Eddie false`
         
         Expected Output:
             `Eddie is now inactive.`
