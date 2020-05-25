@@ -147,18 +147,24 @@ it will repin it as its own message. A pinned bosspile must have a crown and cli
 Reset this bot's bosspile by deleting its pinned message, ensuring there is a bosspile
 pinned by a person and then run `$$p`.
 
-Shorten a command to the first letter like `$$w` for `$$ win`.
 
 __**Available Commands**__
 
-` 
-    * win <player 1> <player 2>:  Updates the bosspile with a win by player 1 over player 2
-    * new <player>:               Add a player to the bottom of the bosspile
-    * edit "<new player line>":   Change the line for a player to the new one.
-    * remove <player>:            Remove a player from the bosspile
-    * active <player> <T/F>:      Change the status of a player to active or inactive (timer icon)
-    * print:                      Prints the current bosspile as a new message. 
-`
+    Shorten a command to the first letter like `$$w` for `$$ win`.
+
+    **win**: Updates the bosspile with a win by player 1 over player 2
+            `win <player 1> <player 2>`
+    **new**: Add a player to the bottom of the bosspile
+            `new <player>`
+    **edit**: Change the line for a player to the new one.
+            `edit "<new player line>"`
+    **remove**: Remove a player from the bosspile
+            `remove <player>`
+    **active**: Change the status of a player to active or inactive (timer icon)
+            `active <player> <True|False>`
+    **print**: Prints the current bosspile as a new message.
+            `print`
+
 
 __**Examples**__
 
