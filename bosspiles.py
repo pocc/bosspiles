@@ -1,6 +1,8 @@
 """Bosspiles for use by BGA bosspiles discord server"""
 import re
 
+MINIMUM_BOSSPILE_PLAYERS = 3
+
 
 class PlayerData:
     """Denotes one player"""
@@ -17,7 +19,7 @@ class BossPile:
     def __init__(self, game: str, bosspile_text: str):
         self.game = game
         # See regex w examples: https://regex101.com/r/iF4cVx/3 , used to parse one player line
-        self.player_line_re = re.compile(r"(?:^|\n)\s*(?::[a-z_]*: ?)* *(\w+(?: \w+)*) *(?::[a-z_]*:)*")
+        self.player_line_re = re.compile(r"(?:^|\n)\s*(?::[a-z_]*: ?)* *~*(\w+(?: \w+)*)~* *(?::[a-z_]*:)*")
 
         self.players = self.parse_bosspile(bosspile_text)
 
@@ -30,8 +32,11 @@ class BossPile:
             if player.username.startswith(player_name):
                 # If there's ambiguity, treat it as not found.
                 if player_pos != -1:
-                    return player_pos, f"Multiple matching players found at {player_pos} and {i}. No changes made."
+                    return player_pos, f"Multiple matching players found for `{player_name}`" \
+                        f" at positions {player_pos} and {i}. No changes made."
                 player_pos = i
+        if player_pos == -1:
+            return player_pos, f"Player {player_name} not found. No changes made."
         return player_pos, err
 
     def win(self, victor):
@@ -40,9 +45,9 @@ class BossPile:
         victor_pos, err_msg = self.find_player_pos(victor)
         victor_is_boss = victor_pos == 0
         if victor_pos == -1:
-            return [f"`{victor}` is not a valid player name. You may need to quote."]
+            return f"`{victor}` is not a valid player name. You may need to quote."
         elif len(err_msg) > 0:
-            return [err_msg]
+            return err_msg
         # If you are climbing, then you move and you played the person above.
         if self.players[victor_pos].climbing and not victor_is_boss:
             loser_pos = victor_pos - 1
@@ -50,8 +55,8 @@ class BossPile:
             loser_pos = victor_pos + 1
         num_climbers = self.players[victor_pos].climbing + self.players[loser_pos].climbing
         if num_climbers != 1:
-            return [f"{num_climbers} climbers found (1 required) at positions "
-                    f"{victor_pos}/{loser_pos}. No changes made."]
+            return f"{num_climbers} climbers found (1 required) at positions " \
+                f"{victor_pos}/{loser_pos}. No changes made."
         messages = [self.players[victor_pos].username + " defeats " + self.players[loser_pos].username]
         self.players[victor_pos].climbing = True
         self.players[loser_pos].climbing = False
@@ -84,20 +89,23 @@ class BossPile:
         new_matches = self.generate_matches()
         for match in new_matches:
             messages += [f"{self.players[match[0]].username} :crossed_swords: {self.players[match[1]].username}"]
-        return messages
+        paragraph_message = "\n".join(messages)
+        return paragraph_message
 
     def generate_matches(self):
         """Create the matches based on who is climbing."""
         matches = []
-        for i in range(len(self.players)):
-            if i > 0 and self.players[i].climbing and not self.players[i-1].climbing:
+        active_players = [p for p in self.players if p.active]
+        for i in range(len(active_players)):
+            if i > 0 and active_players[i].climbing and not active_players[i-1].climbing:
                 matches.append((i, i-1))
         return matches
 
     def add(self, player_name):
         """Add a player to the very end."""
-        if self.find_player_pos(player_name) == -1:
-            return f"{player_name} is already in the bosspile."
+        pos, err = self.find_player_pos(player_name)
+        if pos != -1:
+            return f"{player_name} is already in the bosspile. No changes made."
         new_player = PlayerData(player_name)
         self.players.append(new_player)
         self.players[-1].climbing = True
@@ -117,27 +125,40 @@ class BossPile:
 
     def remove(self, player_name):
         """Delete a player from the leaderboard. Returns whether there was a successful deletion or not."""
-        for i in range(len(self.players)):
-            if player_name == self.players[i].username:
-                del self.players[i]
-                return True
-        return False
+        if len(self.players) <= MINIMUM_BOSSPILE_PLAYERS:
+            return f"A bosspile must have at least {MINIMUM_BOSSPILE_PLAYERS} players. Skipping player deletion."
+        player_pos, err = self.find_player_pos(player_name)
+        if len(err) > 0:
+            return err
+        del self.players[player_pos]
+        return f"{player_name} has been removed."
 
-    def change_active_status(self, player_name, state):
+    def change_active_status(self, player_name, is_active):
         """Make a player active/inactive."""
-        for i in range(len(self.players)):
-            if player_name == self.players[i].username:
-                self.players[i].active = state
+        player_pos, err = self.find_player_pos(player_name)
+        if len(err) > 0:
+            return err
+        self.players[player_pos].active = is_active
+        username = self.players[player_pos].username
+        if player_pos == 0:  # If boss is made inactive, move them down a spot
+            self.players = [self.players[1], self.players[0], *self.players[2:]]
+        return f"{username} is now {'in'*(not is_active)}active."
 
     def parse_bosspile(self, bosspile_text: str):
         """Read the bosspile text and convert it into players"""
         # Crown is pointless because it only signifies leader
         bosspile_text = bosspile_text.replace(":crown:", "")
         player_lines = bosspile_text.strip().split('\n')
+        player_lines = list(filter(None, player_lines))  # Removes empty values
         all_player_data = []
         for player_line in player_lines:
-            player = self.parse_bosspile_line(player_line)
-            all_player_data.append(player)
+            line_is_heading = player_line[0] == '_' or player_line[0] == '*'
+            if not line_is_heading:
+                player = self.parse_bosspile_line(player_line)
+                all_player_data.append(player)
+        # These are invariant climbing statuses for King/Pauper
+        all_player_data[0].climbing = False
+        all_player_data[-1].climbing = True
         return all_player_data
 
     @staticmethod
@@ -162,25 +183,31 @@ class BossPile:
 
     def generate_bosspile(self):
         """Generate the bosspile text from the stored configuration."""
-        bosspile_text = ":crown:"
+        bosspile_text = "__**Bosspile Standings**__\n\n:crown:"
         prev_player_climbing = False
-        for i in range(len(self.players)):
-            player = self.players[i]
-            if not player.active:  # Symbol for inactive players
-                bosspile_text += ":timer:"
-            bosspile_text += player.blue_diamonds * ":large_blue_diamond:"
-            bosspile_text += (player.orange_diamonds//5) * ":large_orange_diamond:"
-            bosspile_text += (player.orange_diamonds % 5) * ":small_orange_diamond:"
-            bosspile_text += f" {player.username} "
+        for player in self.players:
+            bosspile_text += self.generate_bosspile_line(player, prev_player_climbing)
+            prev_player_climbing = player.climbing
+        return bosspile_text
+
+    @staticmethod
+    def generate_bosspile_line(player, prev_player_climbing=False):
+        """Generate one line of bosspile. If there are previous players, which climbing symbol
+        is used depends on if the previous player has a climbing symbol."""
+        bosspile_line = ""
+        if not player.active:
+            bosspile_line += f":timer:~~{player.username}~~:timer:"
+        else:
+            bosspile_line += player.blue_diamonds * ":large_blue_diamond:"
+            bosspile_line += (player.orange_diamonds//5) * ":large_orange_diamond:"
+            bosspile_line += (player.orange_diamonds % 5) * ":small_orange_diamond:"
+            bosspile_line += f" {player.username} "
             # :arrow_double_up: and :cloud: are both climbing
             # Use :cloud: if the player above has :arrow_double_up: or :cloud:
-            is_boss = i == 0
-            if True: # not is_boss:
-                if player.climbing:
-                    if not prev_player_climbing:
-                        bosspile_text += ":arrow_double_up:"
-                    else:
-                        bosspile_text += ":thought_balloon:"
-                prev_player_climbing = player.climbing
-            bosspile_text += '\n'
-        return bosspile_text
+            if player.climbing:
+                if not prev_player_climbing:
+                    bosspile_line += ":arrow_double_up:"
+                else:
+                    bosspile_line += ":thought_balloon:"
+        bosspile_line += '\n'
+        return bosspile_line

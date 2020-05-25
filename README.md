@@ -55,9 +55,6 @@ Shorten a command to the first letter like `$$w` for `$$ win`.
     
     print
 
-**test**: Run all of the tests
-        `test`
-
 
 ## Examples
 

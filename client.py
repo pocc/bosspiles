@@ -1,4 +1,5 @@
 """Discord client."""
+import json
 import shlex
 
 import discord
@@ -32,7 +33,8 @@ async def on_message(message):
 
     if message.content.startswith('$$'):
         try:
-            await run_bosspiles(message)
+            return_message = await run_bosspiles(message)
+            await message.channel.send(return_message)
         except GracefulCoroutineExit:
             pass
 
@@ -68,40 +70,35 @@ async def get_pinned_bosspile(message):
     raise GracefulCoroutineExit("Channel has pins but no bosspile!")
 
 
-async def execute_command(message, args, bosspile):
-    """Execute the $$ command the user has entered."""
+async def execute_command(args, bosspile):
+    """Execute the $$ command the user has entered and return a message."""
     args[0] = args[0].lower()
-    if args[0].startswith("w"):
+    if args[0].startswith("w"):  # win
         victor = args[1]
-        win_messages = bosspile.win(victor)
-        [await message.channel.send(m) for m in win_messages]
-    elif args[0].startswith("n"):
+        return bosspile.win(victor)
+    elif args[0].startswith("n"):  # new
         player_name = args[1]
-        ret_msg = bosspile.add(player_name)
-        await message.channel.send(ret_msg)
-    elif args[0].startswith("e"):
+        return bosspile.add(player_name)
+    elif args[0].startswith("e"):  # edit
         new_line = args[1]
-        ret_msg = bosspile.edit(new_line)
-        await message.channel.send(ret_msg)
-    elif args[0].startswith("r"):
+        return bosspile.edit(new_line)
+    elif args[0].startswith("r"):  # remove
         player_name = args[1]
-        if len(bosspile.players) <= 2:
-            await message.channel.send("A bosspile must have at least 2 players. Skipping player deletion.")
-        was_player_removed = bosspile.remove(player_name)
-        if was_player_removed:
-            await message.channel.send(f"{player_name} has been removed.")
+        return bosspile.remove(player_name)
+    elif args[0].startswith("a"):  # active
+        player_name = args[1]
+        state = args[2].lower().startswith("t")  # t for true, anything else is false
+        return bosspile.change_active_status(player_name, state)
+    elif args[0].startswith("p"):  # print
+        if len(args) > 1:
+            if args[1].startswith("d"):  # debug
+                return "\n".join([json.dumps(p.__dict__) for p in bosspile.players])
+            elif args[1].startswith("r"):  # raw
+                return f"`{bosspile.generate_bosspile()}`"
         else:
-            await message.channel.send(f"{player_name} does not exist in the bosspile and so was not removed.")
-    elif args[0].startswith("a"):
-        player_name = args[1]
-        state = args[2].lower() == "true"
-        bosspile.change_active_status(player_name, state)
-        await message.channel.send(f"{player_name} is now {'in'*(not state)}active.")
-    elif args[0].startswith("p"):
-        bosspile_to_be_printed = bosspile.generate_bosspile()
-        await message.channel.send(bosspile_to_be_printed)
+            return bosspile.generate_bosspile()
     else:
-        await message.channel.send(f"Unrecognized command {args[0]}. Run `$$`.")
+        return f"Unrecognized command {args[0]}. Run `$$`."
 
 
 async def run_bosspiles(message):
@@ -114,7 +111,7 @@ async def run_bosspiles(message):
     edit_existing_bp = bp_pin.author == client.user
     # We can change the board game name, but I'm not sure it matters.
     bosspile = BossPile("Can't stop", bp_pin.content)
-    await execute_command(message, args, bosspile)
+    return_message = await execute_command(args, bosspile)
 
     new_bosspile = bosspile.generate_bosspile()
     if new_bosspile != bp_pin.content:
@@ -124,6 +121,7 @@ async def run_bosspiles(message):
             new_msg = await message.channel.send(new_bosspile)
             await new_msg.pin()
             await message.channel.send("Created new bosspile pin because this bot can only edit its own messages.")
+    return return_message
 
 
 async def send_table_embed(message, game, active_players, inactive_players):
@@ -162,10 +160,8 @@ __**Available Commands**__
             `remove <player>`
     **active**: Change the status of a player to active or inactive (timer icon)
             `active <player> <True|False>`
-    **print**: Prints the current bosspile as a new message.
-            `print`
-    **test**: Run all of the tests
-            `test`
+    **print**: Prints the current bosspile as a new message. Option can be raw or debug, but is not required.
+            `print <option>`
 
 
 __**Examples**__
