@@ -164,6 +164,8 @@ __**Available Commands**__
             `active <player> <True|False>`
     **print**: Prints the current bosspile as a new message.
             `print`
+    **test**: Run all of the tests
+            `test`
 
 
 __**Examples**__

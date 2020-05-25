@@ -38,17 +38,20 @@ class BossPile:
         """p1 has won the game. p1 is climbing. p2 stops climbing.
         The list of messages sent as a result of winning are saved in the messages list."""
         victor_pos, err_msg = self.find_player_pos(victor)
+        victor_is_boss = victor_pos == 0
         if victor_pos == -1:
             return [f"`{victor}` is not a valid player name. You may need to quote."]
         elif len(err_msg) > 0:
             return [err_msg]
         # If you are climbing, then you move and you played the person above.
-        if self.players[victor_pos].climbing:
+        if self.players[victor_pos].climbing and not victor_is_boss:
             loser_pos = victor_pos - 1
         else:  # Otherwise you defended a challenge
             loser_pos = victor_pos + 1
-        if not (self.players[victor_pos].climbing ^ self.players[loser_pos].climbing):
-            return ["An invalid match was detected: 0 or 2 climbers found. No changes made."]
+        num_climbers = self.players[victor_pos].climbing + self.players[loser_pos].climbing
+        if num_climbers != 1:
+            return [f"{num_climbers} climbers found (1 required) at positions "
+                    f"{victor_pos}/{loser_pos}. No changes made."]
         messages = [self.players[victor_pos].username + " defeats " + self.players[loser_pos].username]
         self.players[victor_pos].climbing = True
         self.players[loser_pos].climbing = False
@@ -71,12 +74,13 @@ class BossPile:
         elif victor_pos > loser_pos:
             self.players[victor_pos], self.players[loser_pos] = self.players[loser_pos], self.players[victor_pos]
         # If user is boss and wins, add an orange diamond
-        if victor_pos == 0:
+        if victor_is_boss:
             messages += [self.players[victor_pos].username
                          + " has defended the :crown: and gains :small_orange_diamond:"]
             self.players[victor_pos].orange_diamonds += 1
-        # Last player should always be climbing.
+        # Last player should always be climbing and first player should never be.
         self.players[-1].climbing = True
+        self.players[0].climbing = False
         new_matches = self.generate_matches()
         for match in new_matches:
             messages += [f"{self.players[match[0]].username} :crossed_swords: {self.players[match[1]].username}"]
@@ -92,7 +96,7 @@ class BossPile:
 
     def add(self, player_name):
         """Add a player to the very end."""
-        if self.find_player_pos(player_name):
+        if self.find_player_pos(player_name) == -1:
             return f"{player_name} is already in the bosspile."
         new_player = PlayerData(player_name)
         self.players.append(new_player)
@@ -171,7 +175,7 @@ class BossPile:
             # :arrow_double_up: and :cloud: are both climbing
             # Use :cloud: if the player above has :arrow_double_up: or :cloud:
             is_boss = i == 0
-            if not is_boss:
+            if True: # not is_boss:
                 if player.climbing:
                     if not prev_player_climbing:
                         bosspile_text += ":arrow_double_up:"
