@@ -73,7 +73,12 @@ class BossPile:
                 self.players = self.players[1:] + [self.players[0]]  # move player to end
             else:  # Move them down how many orange diamonds they gained + 1 fencepost error
                 num_down = self.players[loser_pos].orange_diamonds + 1
-                messages += [f"{p2_name} goes down {str(num_down - 1)} spaces."]
+                # Don't interrupt an existing game
+                messages += [f"{p2_name} goes down {str(num_down)} spaces."]
+                if num_down < len(self.players) and \
+                        self.players[num_down+1].climbing and not self.players[num_down].climbing:
+                    num_down += 1
+                    messages += [f"{p2_name} goes down an additional space to not interrupt a game."]
                 self.players = self.players[1:num_down+1] + [self.players[0]] + self.players[num_down+1:]
         # If winner is higher in array (lower in ladder), players switch places
         elif victor_pos > loser_pos:
@@ -83,14 +88,21 @@ class BossPile:
             messages += [self.players[victor_pos].username
                          + " has defended the :crown: and gains :small_orange_diamond:"]
             self.players[victor_pos].orange_diamonds += 1
-        # Last player should always be climbing and first player should never be.
-        self.players[-1].climbing = True
-        self.players[0].climbing = False
+        self.set_climbing_invariants()
         new_matches = self.generate_matches()
         for match in new_matches:
             messages += [f"{self.players[match[0]].username} :crossed_swords: {self.players[match[1]].username}"]
         paragraph_message = "\n".join(messages)
         return paragraph_message
+
+    def set_climbing_invariants(self):
+        """There are climbing invariants that need to be imposed on players.
+        Last *active* player should always be climbing and king (first player) should never be."""
+        lowest_active = len(self.players) - 1
+        while not self.players[lowest_active].active:
+            lowest_active -= 1
+        self.players[lowest_active].climbing = True
+        self.players[0].climbing = False
 
     def generate_matches(self):
         """Create the matches based on who is climbing."""
@@ -108,7 +120,7 @@ class BossPile:
             return f"{player_name} is already in the bosspile. No changes made."
         new_player = PlayerData(player_name)
         self.players.append(new_player)
-        self.players[-1].climbing = True
+        self.players[-1].climbing = True  # by definition this new player is active
         return f"{player_name} has been added successfully."
 
     def edit(self, new_line):
@@ -118,6 +130,7 @@ class BossPile:
         if new_player_pos != -1:
             old_username = self.players[new_player_pos].username
             self.players[new_player_pos] = self.parse_bosspile_line(new_line)
+            self.set_climbing_invariants()
             return f"{old_username} is now️ {new_line}"
         elif len(err_msg) > 0:
             return err_msg
@@ -142,6 +155,7 @@ class BossPile:
         username = self.players[player_pos].username
         if player_pos == 0:  # If boss is made inactive, move them down a spot
             self.players = [self.players[1], self.players[0], *self.players[2:]]
+        self.set_climbing_invariants()
         return f"{username} is now {'in'*(not is_active)}active."
 
     def parse_bosspile(self, bosspile_text: str):
