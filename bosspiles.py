@@ -18,8 +18,9 @@ class BossPile:
     """Class to keep track of players and their rankings"""
     def __init__(self, game: str, bosspile_text: str):
         self.game = game
-        # See regex w examples: https://regex101.com/r/iF4cVx/3 , used to parse one player line
-        self.player_line_re = re.compile(r"(?:^|\n)\s*(?::[a-z_]*: ?)* *~*(\w+(?: \w+)*)~* *(?::[a-z_]*:)*")
+        # See regex w examples: https://regex101.com/r/iF4cVx/6 , used to parse one player line
+        regex = r"(?:^|\n)\s*(?::[a-z_]*: ?)* *~*([\w(),]+(?: *[\w(),]+)*)~* *(?::[a-z_]*:)* *$"
+        self.player_line_re = re.compile(regex)
 
         self.players = self.parse_bosspile(bosspile_text)
 
