@@ -182,7 +182,7 @@ class BossPile:
         """Replace emojis with discord emoji names with colons."""
         bosspile_text = bosspile_text.replace("👑", ":crown:").replace("🔸", ":small_orange_diamond:")\
             .replace("🔶", ":large_orange_diamond:").replace("🔷", ":large_blue_diamond:")\
-            .replace("⏫", ":arrow_double_up:").replace("💭", ":thought_balloon:")
+            .replace("⏫", ":arrow_double_up:").replace("💭", ":thought_balloon:").replace("⏲️", ":timer:")
         return bosspile_text
 
     def parse_bosspile_line(self, player_line: str):
