@@ -167,10 +167,11 @@ class BossPile:
         player_lines = list(filter(None, player_lines))  # Removes empty values
         all_player_data = []
         for player_line in player_lines:
-            line_is_heading = player_line[0] == '_' or player_line[0] == '*'
+            line_is_heading = player_line[0] in ['_', '*', '-', '=']
             if not line_is_heading:
                 player = self.parse_bosspile_line(player_line)
-                all_player_data.append(player)
+                if player:
+                    all_player_data.append(player)
         # These are invariant climbing statuses for King/Pauper
         all_player_data[0].climbing = False
         all_player_data[-1].climbing = True
@@ -190,7 +191,12 @@ class BossPile:
         orange_diamonds = player_line.count(":small_orange_diamond:")
         orange_diamonds += 5 * player_line.count(":large_orange_diamond:")
         blue_diamonds = player_line.count(":large_blue_diamond:")
-        username = self.player_line_re.findall(player_line)[0]
+        matches = self.player_line_re.findall(player_line)
+        if matches:
+            username = matches[0]
+        else:
+            print(f"Line did not match regex `{player_line}`")
+            return None
         climbing = ":arrow_double_up:" in player_line or ":thought_balloon:" in player_line
         active = ":timer:" not in player_line
         player = PlayerData(username, orange_diamonds, blue_diamonds, climbing, active)
