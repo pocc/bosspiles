@@ -18,8 +18,8 @@ class BossPile:
     """Class to keep track of players and their rankings"""
     def __init__(self, game: str, bosspile_text: str):
         self.game = game
-        # See regex w examples: https://regex101.com/r/iF4cVx/6 , used to parse one player line
-        regex = r"(?:^|\n)\s*(?::[a-z_]*: ?)* *~*([\w(),]+(?: *[\w(),]+)*)~* *(?::[a-z_]*:)* *$"
+        # See regex w examples: https://regex101.com/r/iF4cVx/7 , used to parse one player line
+        regex = r"(?:^|\n)\s*~*(?::[a-z_]*: ?)* *([\w(),]+(?: *[\w(),]+)*) *(?::[a-z_]*:)* *~*$"
         self.player_line_re = re.compile(regex)
 
         self.players = self.parse_bosspile(bosspile_text)
@@ -217,18 +217,20 @@ class BossPile:
         is used depends on if the previous player has a climbing symbol."""
         bosspile_line = ""
         if not player.active:
-            bosspile_line += f":timer:~~{player.username}~~:timer:"
-        else:
-            bosspile_line += player.blue_diamonds * ":large_blue_diamond:"
-            bosspile_line += (player.orange_diamonds//5) * ":large_orange_diamond:"
-            bosspile_line += (player.orange_diamonds % 5) * ":small_orange_diamond:"
-            bosspile_line += f" {player.username} "
-            # :arrow_double_up: and :cloud: are both climbing
-            # Use :cloud: if the player above has :arrow_double_up: or :cloud:
+            bosspile_line += f"~~"
+        bosspile_line += player.blue_diamonds * ":large_blue_diamond:"
+        bosspile_line += (player.orange_diamonds//5) * ":large_orange_diamond:"
+        bosspile_line += (player.orange_diamonds % 5) * ":small_orange_diamond:"
+        bosspile_line += f" {player.username} "
+        # :arrow_double_up: and :cloud: are both climbing
+        # Use :cloud: if the player above has :arrow_double_up: or :cloud:
+        if player.active:
             if player.climbing:
                 if not prev_player_climbing:
                     bosspile_line += ":arrow_double_up:"
                 else:
                     bosspile_line += ":thought_balloon:"
+        else:
+            bosspile_line += ":timer:~~"
         bosspile_line += '\n'
         return bosspile_line

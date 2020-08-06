@@ -151,7 +151,7 @@ __**Available Commands**__
     Shorten a command to the first letter like `$$w` for `$$ win`.
 
     **win**: Updates the bosspile with a win by player 1 over player 2
-            `win <player 1> <player 2>`
+            `win <player 1>`
     **new**: Add a player to the bottom of the bosspile
             `new <player>`
     **edit**: Change the line for a player to the new one.
@@ -160,7 +160,7 @@ __**Available Commands**__
             `remove <player>`
     **active**: Change the status of a player to active or inactive (timer icon)
             `active <player> <True|False>`
-    **print**: Prints the current bosspile as a new message. Option can be raw or debug, but is not required.
+    **print**: Prints the current bosspile as a new message. Arg can be raw or debug, but is not required.
             `print <option>`
 
 
