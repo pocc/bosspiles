@@ -48,9 +48,9 @@ async def parse_args(message):
     elif args[0][0] not in [w[0] for w in ["new", "win", "edit", "remove", "active", "print"]]:
         await message.channel.send(f"`$$ {args[0]}` is not a recognized subcommand. See `$$`.")
     elif args[0][0] in [w[0] for w in ["new", "edit", "win", "remove"]] and len(args) != 2:
-        await message.channel.send(f"`$$ {args[0]}` requires 3 arguments. See `$$`.")
+        await message.channel.send(f"`$$ {args[0]}` requires 1 argument. See `$$`.")
     elif args[0][0] in [w[0] for w in ["active"]] and len(args) != 3:
-        await message.channel.send(f"`$$ {args[0]}` requires 4 arguments. See `$$`.")
+        await message.channel.send(f"`$$ {args[0]}` requires 2 arguments. See `$$`.")
     else:
         return args
     raise GracefulCoroutineExit("Problem parsing arguments.")  # Returns this on any error condition
@@ -109,11 +109,16 @@ async def run_bosspiles(message):
     bp_pin = await get_pinned_bosspile(message)
     # We can only edit our own messages
     edit_existing_bp = bp_pin.author == client.user
+    nicknames = {}
+    # Get the nicknames from the guild members
+    for user in message.guild.members:
+        nicknames[str(user.id)] = user.display_name
     # We can change the board game name, but I'm not sure it matters.
-    bosspile = BossPile("Can't stop", bp_pin.content)
+    bosspile = BossPile("Can't stop", nicknames, bp_pin.content)
     return_message = await execute_command(args, bosspile)
 
     new_bosspile = bosspile.generate_bosspile()
+    new_bosspile += "\n_Like this bot? Help with hosting costs by donating a buck (https://bit.ly/2DEay5q)_"
     if new_bosspile != bp_pin.content:
         if edit_existing_bp:
             await bp_pin.edit(content=new_bosspile)

@@ -16,8 +16,9 @@ class PlayerData:
 
 class BossPile:
     """Class to keep track of players and their rankings"""
-    def __init__(self, game: str, bosspile_text: str):
+    def __init__(self, game: str, nicknames, bosspile_text: str):
         self.game = game
+        self.nicknames = nicknames
         # See regex w examples: https://regex101.com/r/iF4cVx/7 , used to parse one player line
         regex = r"(?:^|\n)\s*~*(?::[a-z_]*: ?)* *([\w(),]+(?: *[\w(),]+)*) *(?::[a-z_]*:)* *~*$"
         self.player_line_re = re.compile(regex)
@@ -92,7 +93,14 @@ class BossPile:
         self.set_climbing_invariants()
         new_matches = self.generate_matches()
         for match in new_matches:
-            messages += [f"{self.players[match[0]].username} :crossed_swords: {self.players[match[1]].username}"]
+            left = self.players[match[0]].username
+            right = self.players[match[1]].username
+            for userid in self.nicknames:
+                if left == self.nicknames[userid]:
+                    left = "<@" + userid + ">" 
+                if right == self.nicknames[userid]:
+                    right = "<@" + userid + ">" 
+            messages += [f"{left} :vs: {right}"]
         paragraph_message = "\n".join(messages)
         return paragraph_message
 
