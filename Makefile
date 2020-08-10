@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Run the main script
-.PHONY: run install clean test
+.PHONY: run install kill test
 
-clean:
-	@printf "" > errs
 install:
 	@pip3 install -r requirements.txt
-run: clean
-	@python3 -u client.py 2>&1 | tee errs &
+kill:
+	@kill `cat pid` 2>/dev/null || true
+run: kill
+	@python3 -u bosspiles_discord.py 2>&1 & echo $$! > pid | tee -a errs 
 test:
 	pytest tests.py

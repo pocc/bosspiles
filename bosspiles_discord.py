@@ -1,4 +1,5 @@
 """Discord client."""
+import datetime as dt
 import json
 import shlex
 
@@ -47,9 +48,9 @@ async def parse_args(message):
     # only first letter has to match
     elif args[0][0] not in [w[0] for w in ["new", "win", "edit", "remove", "active", "print"]]:
         await message.channel.send(f"`$$ {args[0]}` is not a recognized subcommand. See `$$`.")
-    elif args[0][0] in [w[0] for w in ["new", "edit", "win", "remove"]] and len(args) != 2:
+    elif args[0][0] in [w[0] for w in ["new", "win", "remove"]] and len(args) != 2:
         await message.channel.send(f"`$$ {args[0]}` requires 1 argument. See `$$`.")
-    elif args[0][0] in [w[0] for w in ["active"]] and len(args) != 3:
+    elif args[0][0] in [w[0] for w in ["edit", "active"]] and len(args) != 3:
         await message.channel.send(f"`$$ {args[0]}` requires 2 arguments. See `$$`.")
     else:
         return args
@@ -80,8 +81,9 @@ async def execute_command(args, bosspile):
         player_name = args[1]
         return bosspile.add(player_name)
     elif args[0].startswith("e"):  # edit
-        new_line = args[1]
-        return bosspile.edit(new_line)
+        old_line = args[1]
+        new_line = args[2]
+        return bosspile.edit(old_line, new_line)
     elif args[0].startswith("r"):  # remove
         player_name = args[1]
         return bosspile.remove(player_name)
@@ -118,7 +120,12 @@ async def run_bosspiles(message):
     return_message = await execute_command(args, bosspile)
 
     new_bosspile = bosspile.generate_bosspile()
-    new_bosspile += "\n_Like this bot? Help with hosting costs by donating a buck (https://bit.ly/2DEay5q)_"
+    coxy5 = [15]
+    monthly_hosting_cost = 5.2
+    days_bought = (sum(coxy5))/monthly_hosting_cost*30
+    day_expires = (dt.datetime(2020, 8, 1, 0, 0, 0, 0) + dt.timedelta(days=days_bought))
+    isodate_expires = day_expires.date().isoformat()
+    new_bosspile += f"\n_Hosting paid for until {isodate_expires} thanks to [Coxy5]._"
     if new_bosspile != bp_pin.content:
         if edit_existing_bp:
             await bp_pin.edit(content=new_bosspile)
@@ -159,8 +166,8 @@ __**Available Commands**__
             `win <player 1>`
     **new**: Add a player to the bottom of the bosspile
             `new <player>`
-    **edit**: Change the line for a player to the new one.
-            `edit "<new player line>"`
+    **edit**: Change the line for a player to the new one. The old line must match exactly.
+            `edit "<old player line>" "<new player line>"`
     **remove**: Remove a player from the bosspile
             `remove <player>`
     **active**: Change the status of a player to active or inactive (timer icon)
@@ -188,7 +195,7 @@ __**Examples**__
 
     **edit**
         You want to edit player "Bob" to add a large blue diamond and climbing
-            `$$ edit "🔷Bob⏫"`
+            `$$ edit "bob" "🔷Bob⏫"`
         Expected Output:
             `Bob ➡️ 🔷Bob⏫`
 

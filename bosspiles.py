@@ -47,14 +47,22 @@ class BossPile:
         victor_pos, err_msg = self.find_player_pos(victor)
         victor_is_boss = victor_pos == 0
         if victor_pos == -1:
-            return f"`{victor}` is not a valid player name. You may need to quote."
+            return f"`{victor}` is not a valid player name. You may need to quote or check capitalization."
         elif len(err_msg) > 0:
             return err_msg
+        if not self.players[victor_pos].active:
+            return f"`{victor}` is not active and cannot play games."
         # If you are climbing, then you move and you played the person above.
         if self.players[victor_pos].climbing and not victor_is_boss:
             loser_pos = victor_pos - 1
+            # The loser should not be an inactive player
+            while loser_pos >= 0 and not self.players[loser_pos].active:
+                loser_pos -= 1
         else:  # Otherwise you defended a challenge
             loser_pos = victor_pos + 1
+            # The loser should not be an inactive player
+            while loser_pos < len(self.players) and not self.players[loser_pos].active:
+                loser_pos += 1
         num_climbers = self.players[victor_pos].climbing + self.players[loser_pos].climbing
         if num_climbers != 1:
             return f"{num_climbers} climbers found (1 required) at positions " \
@@ -93,12 +101,11 @@ class BossPile:
         self.set_climbing_invariants()
         new_matches = self.generate_matches()
         for match in new_matches:
-            left = self.players[match[0]].username
-            right = self.players[match[1]].username
+            left, right = match 
             for userid in self.nicknames:
-                if left == self.nicknames[userid]:
+                if left.startswith(self.nicknames[userid]):
                     left = "<@" + userid + ">" 
-                if right == self.nicknames[userid]:
+                if right.startswith(self.nicknames[userid]):
                     right = "<@" + userid + ">" 
             messages += [f"{left} :vs: {right}"]
         paragraph_message = "\n".join(messages)
@@ -118,8 +125,10 @@ class BossPile:
         matches = []
         active_players = [p for p in self.players if p.active]
         for i in range(len(active_players)):
-            if i > 0 and active_players[i].climbing and not active_players[i-1].climbing:
-                matches.append((i, i-1))
+            player = active_players[i]
+            player_below = active_players[i-1]
+            if i > 0 and player.climbing and not player_below.climbing:
+                matches.append((player.username, player_below.username))
         return matches
 
     def add(self, player_name):
@@ -132,18 +141,18 @@ class BossPile:
         self.players[-1].climbing = True  # by definition this new player is active
         return f"{player_name} has been added successfully."
 
-    def edit(self, new_line):
+    def edit(self, old_line, new_line):
         """Edit an existing player."""
-        new_player = self.parse_bosspile_line(new_line)
-        new_player_pos, err_msg = self.find_player_pos(new_player.username)
-        if new_player_pos != -1:
-            old_username = self.players[new_player_pos].username
-            self.players[new_player_pos] = self.parse_bosspile_line(new_line)
+        old_player = self.parse_bosspile_line(old_line)
+        old_player_pos, err_msg = self.find_player_pos(old_player.username)
+        if old_player_pos != -1:
+            old_username = self.players[old_player_pos].username
+            self.players[old_player_pos] = self.parse_bosspile_line(new_line)
             self.set_climbing_invariants()
-            return f"{old_username} is now️ {new_line}"
+            return f"`{old_line}` is now️ `{new_line}`"
         elif len(err_msg) > 0:
             return err_msg
-        return f"Player not found in `{new_line}`. No line changed."
+        return f"`{new_line}` not found in bosspile. No line changed."
 
     def remove(self, player_name):
         """Delete a player from the leaderboard. Returns whether there was a successful deletion or not."""
@@ -216,7 +225,8 @@ class BossPile:
         prev_player_climbing = False
         for player in self.players:
             bosspile_text += self.generate_bosspile_line(player, prev_player_climbing)
-            prev_player_climbing = player.climbing
+            if player.active:  # Skip inactive players 
+                prev_player_climbing = player.climbing
         return bosspile_text
 
     @staticmethod

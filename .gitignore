@@ -4,3 +4,4 @@ build/
 *keys*
 .idea/
 errs
+pid
