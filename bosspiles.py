@@ -19,8 +19,8 @@ class BossPile:
     def __init__(self, game: str, nicknames, bosspile_text: str):
         self.game = game
         self.nicknames = nicknames
-        # See regex w examples: https://regex101.com/r/iF4cVx/7 , used to parse one player line
-        regex = r"(?:^|\n)\s*~*(?::[a-z_]*: ?)* *([\w(),]+(?: *[\w(),]+)*) *(?::[a-z_]*:)* *~*$"
+        # See regex w examples: https://regex101.com/r/iF4cVx/8 , used to parse one player line
+        regex = r"(?:^|\n)\s*~*(?::[a-z_]*: ?)* *([\w(),\*_]+(?: *[\w(),]+\*_)*) *(?::[a-z_]*:)* *~*$"
         self.player_line_re = re.compile(regex)
 
         self.players = self.parse_bosspile(bosspile_text)
@@ -153,6 +153,26 @@ class BossPile:
         elif len(err_msg) > 0:
             return err_msg
         return f"`{new_line}` not found in bosspile. No line changed."
+    
+    def move(self, player, relative_pos):
+        """Move an existing player. List starts at 0 and goes down."""
+        player_pos, err_msg = self.find_player_pos(player)
+        if len(err_msg) > 0:
+            return err_msg
+        if not relative_pos.isdigit() and not relative_pos[0] == '-' and not relative_pos[1:].isdigit():
+            return f"Relative position must be an integer."
+        # While list starts at 0 and goes down, it preserves intuition
+        # To put in positive numbers and go up, so invert rel pos
+        new_pos = player_pos - int(relative_pos)
+        if new_pos < 0:
+            return f"{relative_pos} would put {player} above the list. Check your math."
+        if new_pos > len(self.players) - 1:
+            return f"{relative_pos} would put {player} below the list. Check your math."
+        moving_player = self.players[player_pos]
+        self.players.remove(moving_player)
+        self.players.insert(new_pos, moving_player) 
+        return f"Successfully moved {player} {relative_pos} spaces"
+        
 
     def remove(self, player_name):
         """Delete a player from the leaderboard. Returns whether there was a successful deletion or not."""
@@ -184,7 +204,7 @@ class BossPile:
         player_lines = list(filter(None, player_lines))  # Removes empty values
         all_player_data = []
         for player_line in player_lines:
-            line_is_heading = player_line[0] in ['_', '*', '-', '=']
+            line_is_heading = player_line[0] in ['-', '=']
             if not line_is_heading:
                 player = self.parse_bosspile_line(player_line)
                 if player:
@@ -214,25 +234,33 @@ class BossPile:
         else:
             print(f"Line did not match regex `{player_line}`")
             return None
-        climbing = ":arrow_double_up:" in player_line or ":thought_balloon:" in player_line
-        active = ":timer:" not in player_line
+        active = ":timer:" not in player_line and "__" not in player_line and "**" not in player_line
+        climbing = active and (":arrow_double_up:" in player_line or ":thought_balloon:" in player_line)
         player = PlayerData(username, orange_diamonds, blue_diamonds, climbing, active)
         return player
 
     def generate_bosspile(self):
         """Generate the bosspile text from the stored configuration."""
-        bosspile_text = "__**Bosspile Standings**__\n\n:crown:"
+        bosspile_text = "__**Bosspile Standings**__\n\n"
+        crown_placed = False  # crown should only be placed on first active player
         prev_player_climbing = False
         for player in self.players:
-            bosspile_text += self.generate_bosspile_line(player, prev_player_climbing)
+            bosspile_line = self.generate_bosspile_line(player, prev_player_climbing)
             if player.active:  # Skip inactive players 
                 prev_player_climbing = player.climbing
+                if not crown_placed:
+                    bosspile_line = " :crown: " + bosspile_line
+                    crown_placed = True
+            bosspile_text += bosspile_line
         return bosspile_text
 
     @staticmethod
     def generate_bosspile_line(player, prev_player_climbing=False):
         """Generate one line of bosspile. If there are previous players, which climbing symbol
         is used depends on if the previous player has a climbing symbol."""
+        if '**' in player.username or '__' in player.username:
+            # If this is a heading, return as is.
+            return f" {player.username}\n"
         bosspile_line = ""
         if not player.active:
             bosspile_line += f"~~"

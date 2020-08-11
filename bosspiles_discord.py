@@ -46,11 +46,11 @@ async def parse_args(message):
     if len(args) == 0:  # on `$$`
         await send_help(message.author)
     # only first letter has to match
-    elif args[0][0] not in [w[0] for w in ["new", "win", "edit", "remove", "active", "print"]]:
+    elif args[0][0] not in [w[0] for w in ["new", "win", "edit", "move", "remove", "active", "print"]]:
         await message.channel.send(f"`$$ {args[0]}` is not a recognized subcommand. See `$$`.")
     elif args[0][0] in [w[0] for w in ["new", "win", "remove"]] and len(args) != 2:
         await message.channel.send(f"`$$ {args[0]}` requires 1 argument. See `$$`.")
-    elif args[0][0] in [w[0] for w in ["edit", "active"]] and len(args) != 3:
+    elif args[0][0] in [w[0] for w in ["edit", "move", "active"]] and len(args) != 3:
         await message.channel.send(f"`$$ {args[0]}` requires 2 arguments. See `$$`.")
     else:
         return args
@@ -84,6 +84,10 @@ async def execute_command(args, bosspile):
         old_line = args[1]
         new_line = args[2]
         return bosspile.edit(old_line, new_line)
+    elif args[0].startswith("m"):  # move
+        player = args[1]
+        relative_position = args[2]
+        return bosspile.move(player, relative_position)
     elif args[0].startswith("r"):  # remove
         player_name = args[1]
         return bosspile.remove(player_name)
@@ -150,13 +154,13 @@ async def send_table_embed(message, game, active_players, inactive_players):
 
 async def send_help(author):
     """Send the user a message explaining what this bot does."""
-    help_msg = """Bosspile Bot: Manage your bosspiles like a wizard
+    about_msg = """Bosspile Bot: Manage your bosspiles like a wizard
 
 This bot needs to manage its own pinned message. If it finds a pinned bosspile,
 it will repin it as its own message. A pinned bosspile must have a crown and climber.
 Reset this bot's bosspile by deleting its pinned message, ensuring there is a bosspile
-pinned by a person and then run `$$p`.
-
+pinned by a person and then run `$$p`."""
+    help_msg = """
 
 __**Available Commands**__
 
@@ -168,9 +172,11 @@ __**Available Commands**__
             `new <player>`
     **edit**: Change the line for a player to the new one. The old line must match exactly.
             `edit "<old player line>" "<new player line>"`
+    **move**: Move a player/line up/down a number of spaces. Positive goes up; negative goes down.
+            `move <player> <number of spaces>`
     **remove**: Remove a player from the bosspile
             `remove <player>`
-    **active**: Change the status of a player to active or inactive (timer icon)
+    **active**: Change the status of a player to active or inactive (timer icon). If this bot sees a "player" with `**` or `__` (bold/italic markers) in their name, it treats it as an inactive heading.
             `active <player> <True|False>`
     **print**: Prints the current bosspile as a new message. Arg can be raw or debug, but is not required.
             `print <option>`
@@ -198,6 +204,10 @@ __**Examples**__
             `$$ edit "bob" "🔷Bob⏫"`
         Expected Output:
             `Bob ➡️ 🔷Bob⏫`
+    
+    **move**
+        You want to move player "Bob" up 2 spaces
+            `$$ move bob 2`
 
     **remove**
         You want to remove player Dan:
@@ -212,6 +222,7 @@ __**Examples**__
             `Eddie is now inactive.`
 """
     truncated_help_msg = help_msg.replace(4*" ", "\t")  # 2000 chars adds up quick
+    await author.send(about_msg)
     await author.send(truncated_help_msg)
 
 

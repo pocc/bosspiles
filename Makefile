@@ -7,6 +7,6 @@ install:
 kill:
 	@kill `cat pid` 2>/dev/null || true
 run: kill
-	@python3 -u bosspiles_discord.py 2>&1 & echo $$! > pid | tee -a errs 
+	@python3 -u bosspiles_discord.py 2>&1 >> errs & echo $$! > pid 
 test:
 	pytest tests.py
