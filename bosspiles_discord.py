@@ -46,7 +46,7 @@ async def parse_args(message):
     if len(args) == 0:  # on `$$`
         await send_help(message.author)
     # only first letter has to match
-    elif args[0][0] not in [w[0] for w in ["new", "win", "edit", "move", "remove", "active", "print"]]:
+    elif args[0][0] not in [w[0] for w in ["new", "win", "edit", "move", "remove", "active", "print", "unpin"]]:
         await message.channel.send(f"`$$ {args[0]}` is not a recognized subcommand. See `$$`.")
     elif args[0][0] in [w[0] for w in ["new", "win", "remove"]] and len(args) != 2:
         await message.channel.send(f"`$$ {args[0]}` requires 1 argument. See `$$`.")
@@ -65,7 +65,8 @@ async def get_pinned_bosspile(message):
         raise GracefulCoroutineExit("Channel has no pins!")
     for pin in pins:
         if (":crown:" in pin.content or "👑" in pin.content) \
-                and (":arrow_double_up:" in pin.content or "⏫" in pin.content):
+                and (":small_orange_diamond:" in pin.content or "🔸" in pin.content 
+                    or ":arrow_double_up" in pin.content or "⏫" in pin.content):
             return pin
     await message.channel.send("This channel has no bosspile! Pin your bosspile message and try again.")
     raise GracefulCoroutineExit("Channel has pins but no bosspile!")
@@ -112,14 +113,20 @@ async def run_bosspiles(message):
     print(f"Received message `{message.content}`")
     args = await parse_args(message)
 
-    bp_pin = await get_pinned_bosspile(message)
-    # We can only edit our own messages
-    edit_existing_bp = bp_pin.author == client.user
     nicknames = {}
     # Get the nicknames from the guild members
     for user in message.guild.members:
         nicknames[str(user.id)] = user.display_name
     # We can change the board game name, but I'm not sure it matters.
+    if args[0] == "unpin":
+        # Unpin requires a reason
+        if len(args) < 2:
+            await message.channel.send("You need to provide a reason for the unpin (1+ words).")
+            return "Syntax error."
+        unpin_bot_pins(args)
+    bp_pin = await get_pinned_bosspile(message)
+    # We can only edit our own messages
+    edit_existing_bp = bp_pin.author == client.user
     bosspile = BossPile("Can't stop", nicknames, bp_pin.content)
     return_message = await execute_command(args, bosspile)
 
@@ -139,6 +146,15 @@ async def run_bosspiles(message):
             await message.channel.send("Created new bosspile pin because this bot can only edit its own messages.")
     return return_message
 
+async def unpin_bot_pins(args):
+    """Unpin all of the bot's pins."""
+    bot_pins = await message.channel.pins()
+    for pin in bot_pins:
+        if pin.author == client.user:  # If this bot created it
+            await message.channel.send("Bosspile being unpinned:")
+            await message.channel.send(pin.content)
+            await bp_pin.unpin(reason=' '.join(args[1:]))
+    return "Bosspile unpinned successfully!"
 
 async def send_table_embed(message, game, active_players, inactive_players):
     """Create a discord embed to send the message about table creation."""

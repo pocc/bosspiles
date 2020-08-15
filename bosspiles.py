@@ -19,8 +19,8 @@ class BossPile:
     def __init__(self, game: str, nicknames, bosspile_text: str):
         self.game = game
         self.nicknames = nicknames
-        # See regex w examples: https://regex101.com/r/iF4cVx/8 , used to parse one player line
-        regex = r"(?:^|\n)\s*~*(?::[a-z_]*: ?)* *([\w(),\*_]+(?: *[\w(),]+\*_)*) *(?::[a-z_]*:)* *~*$"
+        # See regex w examples: https://regex101.com/r/iF4cVx/9 , used to parse one player line
+        regex = r"(?:^|\n)\s*~*(?::[a-z_]*: ?)* *([\w(),_+]+(?: *[\w(),_+]+)*) *(?::[a-z_]*:)* *~*$"
         self.player_line_re = re.compile(regex)
 
         self.players = self.parse_bosspile(bosspile_text)
@@ -67,7 +67,7 @@ class BossPile:
         if num_climbers != 1:
             return f"{num_climbers} climbers found (1 required) at positions " \
                 f"{victor_pos}/{loser_pos}. No changes made."
-        messages = [self.players[victor_pos].username + " defeats " + self.players[loser_pos].username]
+        messages = [self.players[victor_pos].username + " defeats " + self.players[loser_pos].username + "\n"]
         self.players[victor_pos].climbing = True
         self.players[loser_pos].climbing = False
         # If user is boss and loses, move to bottom and convert 5 orange => blue
@@ -100,15 +100,42 @@ class BossPile:
             self.players[victor_pos].orange_diamonds += 1
         self.set_climbing_invariants()
         new_matches = self.generate_matches()
+        victor_id = [ID for ID in self.nicknames if self.nicknames[ID] == victor][0]
+        new_match = []
+        old_matches = []
+        warnings = []
+        def tag_user(user_id, name):
+            if user_id == 0:
+                return name
+            return "<@" + user_id + ">"
+        def get_user_by_id(user_id, name):
+            if user_id == 0:
+                return name
+            return self.nicknames[user_id]
         for match in new_matches:
-            left, right = match 
+            left_id = 0
+            right_id = 0 
+            left_name, right_name = match 
             for userid in self.nicknames:
-                if left.startswith(self.nicknames[userid]):
-                    left = "<@" + userid + ">" 
-                if right.startswith(self.nicknames[userid]):
-                    right = "<@" + userid + ">" 
-            messages += [f"{left} :vs: {right}"]
-        paragraph_message = "\n".join(messages)
+                if left_name.startswith(self.nicknames[userid]):
+                    left_id = userid
+                if right_name.startswith(self.nicknames[userid]):
+                    right_id = userid
+            if left_id == 0:
+                warnings += [f"*Is {left_name} a player on this server?*"]
+            if right_id == 0:
+                warnings += [f"*Is {right_name} a player on this server?*"]
+            # Only tag the victor and the next person they face
+            if left_id == victor_id or right_id == victor_id:
+                left = tag_user(left_id, left_name) 
+                right = tag_user(right_id, right_name) 
+                new_match = [f"{left} :vs: {right}\n"]
+            else:
+                left = get_user_by_id(left_id, left_name)
+                right = get_user_by_id(right_id, right_name) 
+                old_matches += [f":game_die: {left} :vs: {right}"]
+        paragraph_message = "\n".join(messages + warnings + new_match + old_matches)
+        paragraph_message += "\n\n" + self.generate_bosspile()
         return paragraph_message
 
     def set_climbing_invariants(self):
@@ -234,7 +261,7 @@ class BossPile:
         else:
             print(f"Line did not match regex `{player_line}`")
             return None
-        active = ":timer:" not in player_line and "__" not in player_line and "**" not in player_line
+        active = ":timer:" not in player_line and "__" not in player_line 
         climbing = active and (":arrow_double_up:" in player_line or ":thought_balloon:" in player_line)
         player = PlayerData(username, orange_diamonds, blue_diamonds, climbing, active)
         return player
@@ -258,9 +285,9 @@ class BossPile:
     def generate_bosspile_line(player, prev_player_climbing=False):
         """Generate one line of bosspile. If there are previous players, which climbing symbol
         is used depends on if the previous player has a climbing symbol."""
-        if '**' in player.username or '__' in player.username:
+        if '**' not in player.username and '__' in player.username:
             # If this is a heading, return as is.
-            return f" {player.username}\n"
+            return f"\n {player.username}\n"
         bosspile_line = ""
         if not player.active:
             bosspile_line += f"~~"
