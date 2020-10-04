@@ -2,6 +2,31 @@
 
 A discord bot for the BGA bosspiles group: https://en.boardgamearena.com/group?id=2047909. 
 
+## What are bosspiles?
+
+The Bosspile is a discord ladder system designed for 2 player games.
+
+### Rules [work in progress]
+
+* Active players will challenge an inactive player above them to a 1v1 game set with 2 moves per day timer
+* This challenge is an attempt at climbing above the defending player in the pile
+* The winner will be active after the game ends and the loser will be inactive (meaning they will need to win as the challenged player before they can attempt climbing higher)
+* The highest player in the ladder is the boss and will win diamonds for successfully defeating a challenge
+* When the boss is defeated, that player drops one extra place for each diamond they won as the boss
+* After 5 :small_orange_diamond: they are changed into a :large_orange_diamond: and when losing that boss drops ALL the way to the bottom of the pile
+* But the :large_orange_diamond: s do not count on future runs as the boss
+The lowest player on the pile is always active
+* They can challenge the next lowest player provided that player is not already active and attempting to climb
+* They must wait for that match to end and can challenge the loser immediately
+
+### Requirements for a bosspile
+
+Each pile needs a seperate channel for different games and those will be created when 3+ players express interest in that game.
+
+### Contact
+
+Have fun and feel free to private message turtler7 on BGA if you have any questions or want your favorite game to have its own pile!
+
 ## Setup
 
 Run this on a VPS with autotools:

@@ -2,6 +2,7 @@
 import datetime as dt
 import json
 import shlex
+import traceback
 
 import discord
 
@@ -36,8 +37,10 @@ async def on_message(message):
         try:
             return_message = await run_bosspiles(message)
             await message.channel.send(return_message)
-        except GracefulCoroutineExit:
-            pass
+        except Exception as e:
+            with open('errs', 'a') as f:
+                f.write(traceback.format_exc())
+                f.write(str(e))
 
 
 async def parse_args(message):
@@ -65,7 +68,7 @@ async def get_pinned_bosspile(message):
         raise GracefulCoroutineExit("Channel has no pins!")
     for pin in pins:
         if (":crown:" in pin.content or "👑" in pin.content) \
-                and (":small_orange_diamond:" in pin.content or "🔸" in pin.content 
+                and (":small_orange_diamond:" in pin.content or "🔸" in pin.content
                     or ":arrow_double_up" in pin.content or "⏫" in pin.content):
             return pin
     await message.channel.send("This channel has no bosspile! Pin your bosspile message and try again.")
@@ -123,20 +126,17 @@ async def run_bosspiles(message):
         if len(args) < 2:
             await message.channel.send("You need to provide a reason for the unpin (1+ words).")
             return "Syntax error."
-        unpin_bot_pins(args)
+        unpin_bot_pins(args, message)
     bp_pin = await get_pinned_bosspile(message)
+    contributors_line = generate_contrib_line()
     # We can only edit our own messages
     edit_existing_bp = bp_pin.author == client.user
-    bosspile = BossPile("Can't stop", nicknames, bp_pin.content)
+    game = message.channel.name.replace('bosspile', '').replace('-', '')
+    bosspile = BossPile(game, nicknames, bp_pin.content + contributors_line)
     return_message = await execute_command(args, bosspile)
 
     new_bosspile = bosspile.generate_bosspile()
-    coxy5 = [15]
-    monthly_hosting_cost = 5.2
-    days_bought = (sum(coxy5))/monthly_hosting_cost*30
-    day_expires = (dt.datetime(2020, 8, 1, 0, 0, 0, 0) + dt.timedelta(days=days_bought))
-    isodate_expires = day_expires.date().isoformat()
-    new_bosspile += f"\n_Hosting paid for until {isodate_expires} thanks to [Coxy5]._"
+    new_bosspile += contributors_line
     if new_bosspile != bp_pin.content:
         if edit_existing_bp:
             await bp_pin.edit(content=new_bosspile)
@@ -146,14 +146,25 @@ async def run_bosspiles(message):
             await message.channel.send("Created new bosspile pin because this bot can only edit its own messages.")
     return return_message
 
-async def unpin_bot_pins(args):
+def generate_contrib_line():
+    contributions = {
+        "Coxy5": 15
+    }
+    total_contrib = sum(list(contributions.values()))
+    MONTHLY_HOSTING_COST = 5.2
+    days_bought = total_contrib/MONTHLY_HOSTING_COST*30
+    day_expires = (dt.datetime(2020, 8, 1, 0, 0, 0, 0) + dt.timedelta(days=days_bought))
+    isodate_expires = day_expires.date().isoformat()
+    return f"\n_Hosting paid for until {isodate_expires} thanks to [{', '.join(list(contributions.keys()))}]._"
+
+async def unpin_bot_pins(args, message):
     """Unpin all of the bot's pins."""
     bot_pins = await message.channel.pins()
     for pin in bot_pins:
         if pin.author == client.user:  # If this bot created it
             await message.channel.send("Bosspile being unpinned:")
             await message.channel.send(pin.content)
-            await bp_pin.unpin(reason=' '.join(args[1:]))
+            await message.bp_pin.unpin(reason=' '.join(args[1:]))
     return "Bosspile unpinned successfully!"
 
 async def send_table_embed(message, game, active_players, inactive_players):
@@ -220,7 +231,7 @@ __**Examples**__
             `$$ edit "bob" "🔷Bob⏫"`
         Expected Output:
             `Bob ➡️ 🔷Bob⏫`
-    
+
     **move**
         You want to move player "Bob" up 2 spaces
             `$$ move bob 2`
