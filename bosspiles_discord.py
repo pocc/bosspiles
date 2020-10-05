@@ -78,28 +78,28 @@ async def get_pinned_bosspile(message):
 async def execute_command(args, bosspile):
     """Execute the $$ command the user has entered and return a message."""
     args[0] = args[0].lower()
-    if args[0].startswith("w"):  # win
+    if "win".startswith(args[0]):
         victor = args[1]
         return bosspile.win(victor)
-    elif args[0].startswith("n"):  # new
+    elif "new".startswith(args[0]):  # new
         player_name = args[1]
         return bosspile.add(player_name)
-    elif args[0].startswith("e"):  # edit
+    elif "edit".startswith(args[0]):  # edit
         old_line = args[1]
         new_line = args[2]
         return bosspile.edit(old_line, new_line)
-    elif args[0].startswith("m"):  # move
+    elif "move".startswith(args[0]):  # move
         player = args[1]
         relative_position = args[2]
         return bosspile.move(player, relative_position)
-    elif args[0].startswith("r"):  # remove
+    elif "remove".startswith(args[0]):  # remove
         player_name = args[1]
         return bosspile.remove(player_name)
-    elif args[0].startswith("a"):  # active
+    elif "active".startswith(args[0]):  # active
         player_name = args[1]
         state = args[2].lower().startswith("t")  # t for true, anything else is false
         return bosspile.change_active_status(player_name, state)
-    elif args[0].startswith("p"):  # print
+    elif "print".startswith(args[0]):  # print
         if len(args) > 1:
             if args[1].startswith("d"):  # debug
                 return "\n".join([json.dumps(p.__dict__) for p in bosspile.players])
@@ -128,12 +128,14 @@ async def run_bosspiles(message):
             return "Syntax error."
         unpin_bot_pins(args, message)
     bp_pin = await get_pinned_bosspile(message)
-    contributors_line = generate_contrib_line()
     # We can only edit our own messages
     edit_existing_bp = bp_pin.author == client.user
     game = message.channel.name.replace('bosspile', '').replace('-', '')
-    bosspile = BossPile(game, nicknames, bp_pin.content + contributors_line)
+    bosspile = BossPile(game, nicknames, bp_pin.content)
     return_message = await execute_command(args, bosspile)
+    contributors_line = generate_contrib_line()
+    if args[0].startswith("w"):
+        return_message += contributors_line
 
     new_bosspile = bosspile.generate_bosspile()
     new_bosspile += contributors_line

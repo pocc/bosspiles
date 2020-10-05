@@ -42,32 +42,32 @@ class BossPile:
         return player_pos, err
 
     def validate_win(self, victor, loser_pos, victor_pos):
-      """Ensure that win meets parameters."""
-      if victor_pos == -1:
-          return f"`{victor}` is not a valid player name. You may need to quote or check capitalization."
-      if not self.players[victor_pos].active:
-          return f"`{victor}` is not active and cannot play games."
+        """Ensure that win meets parameters."""
+        if victor_pos == -1:
+            return f"`{victor}` is not a valid player name. You may need to quote or check capitalization."
+        if not self.players[victor_pos].active:
+            return f"`{victor}` is not active and cannot play games."
 
-      num_climbers = self.players[victor_pos].climbing + self.players[loser_pos].climbing
-      if num_climbers != 1:
-          return f"{num_climbers} climbers found (1 required) at positions " \
-              f"{victor_pos}/{loser_pos}. No changes made."
-      return ""
+        num_climbers = self.players[victor_pos].climbing + self.players[loser_pos].climbing
+        if num_climbers != 1:
+            return f"{num_climbers} climbers found (1 required) at positions " \
+                f"{victor_pos}/{loser_pos}. No changes made."
+        return ""
 
     def find_loser_pos(self, victor_pos, victor_is_boss):
-      """Get the position of the loser provided the winner's position."""
-      # If you are climbing, then you move and you played the person above.
-      if self.players[victor_pos].climbing and not victor_is_boss:
-          loser_pos = victor_pos - 1
-          # The loser should not be an inactive player
-          while loser_pos >= 0 and not self.players[loser_pos].active:
-              loser_pos -= 1
-      else:  # Otherwise you defended a challenge
-          loser_pos = victor_pos + 1
-          # The loser should not be an inactive player
-          while loser_pos < len(self.players) and not self.players[loser_pos].active:
-              loser_pos += 1
-      return loser_pos
+        """Get the position of the loser provided the winner's position."""
+        # If you are climbing, then you move and you played the person above.
+        if self.players[victor_pos].climbing and not victor_is_boss:
+            loser_pos = victor_pos - 1
+            # The loser should not be an inactive player
+            while loser_pos >= 0 and not self.players[loser_pos].active:
+                loser_pos -= 1
+        else:  # Otherwise you defended a challenge
+            loser_pos = victor_pos + 1
+            # The loser should not be an inactive player
+            while loser_pos < len(self.players) and not self.players[loser_pos].active:
+                loser_pos += 1
+        return loser_pos
 
     def dethrone_boss(self, victor_pos, loser_pos):
         # If user is boss and loses, move to bottom and convert 5 orange => blue
@@ -194,11 +194,10 @@ class BossPile:
 
     def add(self, player_name):
         """Add a player to the very end."""
-        pos, err = self.find_player_pos(player_name)
+        # Check that the player isn't already in the bosspile
+        pos, _ = self.find_player_pos(player_name)
         if pos != -1:
             return f"{player_name} is already in the bosspile. No changes made."
-        if len(err) > 0:
-            return err
         new_player = PlayerData(player_name)
         self.players.append(new_player)
         self.players[-1].climbing = True  # by definition this new player is active

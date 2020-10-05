@@ -3,8 +3,6 @@ import random
 
 from bosspiles import BossPile
 from examples import example_bosspile, expected_bosspile_1000
-import emoji
-
 
 class TestClass(unittest.TestCase):
     def setUp(self):
