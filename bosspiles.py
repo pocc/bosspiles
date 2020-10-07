@@ -88,8 +88,8 @@ class BossPile:
                     self.players[num_down+1].climbing and not self.players[num_down].climbing:
                 num_down += 1
                 messages += [f"{p2_name} goes down an additional space to not interrupt a game."]
-            self.players = self.players[1:num_down+1] + [self.players[0]] + self.players[num_down+1:]  
-        return messages  
+            self.players = self.players[1:num_down+1] + [self.players[0]] + self.players[num_down+1:]
+        return messages
 
     def win(self, victor):
         """p1 has won the game. p1 is climbing. p2 stops climbing.
@@ -110,7 +110,7 @@ class BossPile:
         self.players[loser_pos].climbing = False
         if loser_is_boss:
             new_messages = self.dethrone_boss(victor_pos, loser_pos)
-            messages.append(new_messages)
+            messages += new_messages
         # If winner is higher in array (lower in ladder), players switch places
         elif victor_pos > loser_pos:
             self.players[victor_pos], self.players[loser_pos] = self.players[loser_pos], self.players[victor_pos]
@@ -134,7 +134,7 @@ class BossPile:
         old_matches = []
         warnings = []
         def tag_user(user_id, name):
-            if user_id == 0:
+            if user_id == -1:
                 return name
             return "<@" + user_id + ">"
         def get_user_by_id(user_id, name):
@@ -155,7 +155,7 @@ class BossPile:
             if right_id == -1:
                 warnings += [f"*Is `{right_name}` a player on this server?*"]
             # Only tag the victor and the next person they face
-            new_games_from_win = (left_id == victor_id or right_id == victor_id 
+            new_games_from_win = (left_id == victor_id or right_id == victor_id
             or left_id == loser_id or right_id == loser_id)
             if new_games_from_win:
                 left = tag_user(left_id, left_name)
