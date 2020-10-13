@@ -31,7 +31,7 @@ class BossPile:
         err = ""
         for i in range(len(self.players)):
             player = self.players[i]
-            if player.username.startswith(player_name):
+            if player.username.lower().startswith(player_name.lower()):
                 # If there's ambiguity, treat it as not found.
                 if player_pos != -1:
                     return player_pos, f"Multiple matching players found for `{player_name}`" \
@@ -126,9 +126,9 @@ class BossPile:
         for ID in self.nicknames:
             # There are sometimes extraneous information in the name in parentheses
             # like what versions of the game somebody wants to play
-            if victor.startswith(self.nicknames[ID]):
+            if victor.lower().startswith(self.nicknames[ID].lower()):
                 victor_id = ID
-            if loser.startswith(self.nicknames[ID]):
+            if loser.lower().startswith(self.nicknames[ID].lower()):
                 loser_id = ID
         new_matches = []
         old_matches = []
@@ -142,13 +142,15 @@ class BossPile:
                 return name
             return self.nicknames[user_id]
         for match in matches:
+            # Left and right ID are a different default than loser/winner so that
+            # The defaults cannot be equal
             left_id = -1
             right_id = -1
             left_name, right_name = match
             for userid in self.nicknames:
-                if left_name.startswith(self.nicknames[userid]):
+                if left_name.lower().startswith(self.nicknames[userid].lower()):
                     left_id = userid
-                if right_name.startswith(self.nicknames[userid]):
+                if right_name.lower().startswith(self.nicknames[userid].lower()):
                     right_id = userid
             if left_id == -1:
                 warnings += [f"*Is `{left_name}` a player on this server?*"]

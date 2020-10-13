@@ -133,8 +133,8 @@ async def run_bosspiles(message):
     game = message.channel.name.replace('bosspile', '').replace('-', '')
     bosspile = BossPile(game, nicknames, bp_pin.content)
     return_message = await execute_command(args, bosspile)
-    contributors_line = generate_contrib_line()
-    if args[0].startswith("w"):
+    contributors_line, day_expires = generate_contrib_line()
+    if args[0].startswith("w") and "Bosspile Standings" in return_message and (day_expires -  dt.datetime.now()).days > 14:
         return_message += contributors_line
 
     new_bosspile = bosspile.generate_bosspile()
@@ -150,14 +150,15 @@ async def run_bosspiles(message):
 
 def generate_contrib_line():
     contributions = {
-        "Coxy5": 15
+        "Coxy5": 15,
+        "Corwin007": 10
     }
     total_contrib = sum(list(contributions.values()))
     MONTHLY_HOSTING_COST = 5.2
     days_bought = total_contrib/MONTHLY_HOSTING_COST*30
     day_expires = (dt.datetime(2020, 8, 1, 0, 0, 0, 0) + dt.timedelta(days=days_bought))
     isodate_expires = day_expires.date().isoformat()
-    return f"\n_Hosting paid for until {isodate_expires} thanks to [{', '.join(list(contributions.keys()))}]._"
+    return f"\n_Hosting paid for until {isodate_expires} thanks to [{', '.join(list(contributions.keys()))}]._", day_expires
 
 async def unpin_bot_pins(args, message):
     """Unpin all of the bot's pins."""
