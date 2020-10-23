@@ -23,7 +23,7 @@ async def on_ready():
     """Let the user who started the bot know that the connection succeeded."""
     print(f'{client.user.name} has connected to Discord!')
     # Create words under bot that say "Listening to !bga"
-    listening_to_help = discord.Activity(type=discord.ActivityType.listening, name="$$")
+    listening_to_help = discord.Activity(type=discord.ActivityType.listening, name="$")
     await client.change_presence(activity=listening_to_help)
 
 
@@ -33,71 +33,71 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    if message.content.startswith('$$'):
+    if message.content.startswith('$'):
         try:
             return_message = await run_bosspiles(message)
-            await message.channel.send(return_message)
+            await send_message_partials(message.channel, return_message)
         except Exception as e:
+            await message.channel.send("Tell <@!234561564697559041> to fix his bosspiles bot.")
             with open('errs', 'a') as f:
                 f.write(traceback.format_exc())
                 f.write(str(e))
 
 
-async def parse_args(message):
+async def parse_args(msg_text):
     """Parse the args and tell the user if they are not valid."""
-    args = shlex.split(message.content[2:])
-    if len(args) == 0:  # on `$$`
-        await send_help(message.author)
+    while len(msg_text) > 0 and msg_text[0] == '$':
+        msg_text = msg_text[1:]
+    args = shlex.split(msg_text)
+    if len(args) == 0 or args[0][0] == 'h':  # on `$` or `$help`
+        help_text = get_help()
+        return [], help_text
     # only first letter has to match
     elif args[0][0] not in [w[0] for w in ["new", "win", "edit", "move", "remove", "active", "print", "unpin"]]:
-        await message.channel.send(f"`$$ {args[0]}` is not a recognized subcommand. See `$$`.")
-    elif args[0][0] in [w[0] for w in ["new", "win", "remove"]] and len(args) != 2:
-        await message.channel.send(f"`$$ {args[0]}` requires 1 argument. See `$$`.")
-    elif args[0][0] in [w[0] for w in ["edit", "move", "active"]] and len(args) != 3:
-        await message.channel.send(f"`$$ {args[0]}` requires 2 arguments. See `$$`.")
+        return [], f"`$ {args[0]}` is not a recognized subcommand. See `$`."
+    elif args[0][0] in [w[0] for w in ["edit"]] and len(args) != 3:
+        return [], f"`$ {args[0]}` requires 2 arguments. See `$`."
     else:
-        return args
-    raise GracefulCoroutineExit("Problem parsing arguments.")  # Returns this on any error condition
+        return args, ""
+    return [], "Problem parsing arguments. Type $ for options."  # Returns this on any error condition
 
 
 async def get_pinned_bosspile(message):
     """Get the pinned messages if there are any."""
     pins = await message.channel.pins()
     if len(pins) == 0:
-        await message.channel.send("This channel has no pins (a pinned bosspile is required)")
-        raise GracefulCoroutineExit("Channel has no pins!")
+        return None, "This channel has no pins (a pinned bosspile is required)"
     for pin in pins:
         if (":crown:" in pin.content or "👑" in pin.content) \
                 and (":small_orange_diamond:" in pin.content or "🔸" in pin.content
                     or ":arrow_double_up" in pin.content or "⏫" in pin.content):
-            return pin
-    await message.channel.send("This channel has no bosspile! Pin your bosspile message and try again.")
-    raise GracefulCoroutineExit("Channel has pins but no bosspile!")
+            return pin, ""
+    return None, "This channel has no bosspile pins! Pin your bosspile message and try again."
 
 
 async def execute_command(args, bosspile):
-    """Execute the $$ command the user has entered and return a message."""
+    """Execute the $ command the user has entered and return a message."""
     args[0] = args[0].lower()
     if "win".startswith(args[0]):
-        victor = args[1]
+        victor = ' '.join(args[1:])
         return bosspile.win(victor)
     elif "new".startswith(args[0]):  # new
-        player_name = args[1]
+        player_name = ' '.join(args[1:])
         return bosspile.add(player_name)
     elif "edit".startswith(args[0]):  # edit
         old_line = args[1]
         new_line = args[2]
         return bosspile.edit(old_line, new_line)
     elif "move".startswith(args[0]):  # move
-        player = args[1]
-        relative_position = args[2]
+        player = ' '.join(args[1:-1])
+        relative_position = args[-1]
         return bosspile.move(player, relative_position)
     elif "remove".startswith(args[0]):  # remove
-        player_name = args[1]
+        player_name = ' '.join(args[1:])
         return bosspile.remove(player_name)
     elif "active".startswith(args[0]):  # active
-        player_name = args[1]
-        state = args[2].lower().startswith("t")  # t for true, anything else is false
+        player_name = ' '.join(args[1:-1])
+        state = args[-1].lower().startswith("t")  # t for true, anything else is false
         return bosspile.change_active_status(player_name, state)
     elif "print".startswith(args[0]):  # print
         if len(args) > 1:
@@ -105,17 +105,17 @@ async def execute_command(args, bosspile):
                 return "\n".join([json.dumps(p.__dict__) for p in bosspile.players])
             elif args[1].startswith("r"):  # raw
                 return f"`{bosspile.generate_bosspile()}`"
-        else:
-            return bosspile.generate_bosspile()
+        return bosspile.generate_bosspile()
     else:
-        return f"Unrecognized command {args[0]}. Run `$$`."
+        return f"Unrecognized command {args[0]}. Run `$`."
 
 
 async def run_bosspiles(message):
     """Run the bosspiles program ~ main()."""
     print(f"Received message `{message.content}`")
-    args = await parse_args(message)
-
+    args, errs = await parse_args(message.content)
+    if errs:
+        return errs
     nicknames = {}
     # Get the nicknames from the guild members
     for user in message.guild.members:
@@ -127,18 +127,25 @@ async def run_bosspiles(message):
             await message.channel.send("You need to provide a reason for the unpin (1+ words).")
             return "Syntax error."
         unpin_bot_pins(args, message)
-    bp_pin = await get_pinned_bosspile(message)
+    bp_pin, errs = await get_pinned_bosspile(message)
+    if errs:
+        return errs
     # We can only edit our own messages
     edit_existing_bp = bp_pin.author == client.user
     game = message.channel.name.replace('bosspile', '').replace('-', '')
     bosspile = BossPile(game, nicknames, bp_pin.content)
     return_message = await execute_command(args, bosspile)
-    contributors_line, day_expires = generate_contrib_line()
-    if args[0].startswith("w") and "Bosspile Standings" in return_message and (day_expires -  dt.datetime.now()).days > 14:
-        return_message += contributors_line
-
     new_bosspile = bosspile.generate_bosspile()
-    new_bosspile += contributors_line
+    bosspile_server_id = 419535969507606529
+    contributors_line, day_expires = generate_contrib_line()
+    if (
+        args[0].startswith("w")
+        and "Standings" in return_message  # Bosspile Standings or Ladder Standings in title
+        and (day_expires -  dt.datetime.now()).days < 20
+        and message.guild.id == bosspile_server_id
+    ):
+        return_message += contributors_line
+        new_bosspile += contributors_line
     if new_bosspile != bp_pin.content:
         if edit_existing_bp:
             await bp_pin.edit(content=new_bosspile)
@@ -182,78 +189,33 @@ async def send_table_embed(message, game, active_players, inactive_players):
     await message.channel.send(embed=retmsg)
 
 
-async def send_help(author):
-    """Send the user a message explaining what this bot does."""
-    about_msg = """Bosspile Bot: Manage your bosspiles like a wizard
-
-This bot needs to manage its own pinned message. If it finds a pinned bosspile,
-it will repin it as its own message. A pinned bosspile must have a crown and climber.
-Reset this bot's bosspile by deleting its pinned message, ensuring there is a bosspile
-pinned by a person and then run `$$p`."""
-    help_msg = """
-
-__**Available Commands**__
-
-    Shorten a command to the first letter like `$$w` for `$$ win`.
-
-    **win**: Updates the bosspile with a win by player 1 over player 2
-            `win <player 1>`
-    **new**: Add a player to the bottom of the bosspile
-            `new <player>`
-    **edit**: Change the line for a player to the new one. The old line must match exactly.
-            `edit "<old player line>" "<new player line>"`
-    **move**: Move a player/line up/down a number of spaces. Positive goes up; negative goes down.
-            `move <player> <number of spaces>`
-    **remove**: Remove a player from the bosspile
-            `remove <player>`
-    **active**: Change the status of a player to active or inactive (timer icon). If this bot sees a "player" with `**` or `__` (bold/italic markers) in their name, it treats it as an inactive heading.
-            `active <player> <True|False>`
-    **print**: Prints the current bosspile as a new message. Arg can be raw or debug, but is not required.
-            `print <option>`
-
-
-__**Examples**__
-
-    Your discord name is `Alice` in these examples, all of which change the bosspile.
-
-    **win**
-        You won against Bob. (You don't need to include his name because of players with ⏫):
-            `$$ win Alice`
-        Expected Output includes result, as well as all new matches:
-            `Alice defeats Bob`
-            `Frank ⚔ Georgia`
-            `Harriett ⚔ Ian`
-    **new**
-        You want to add player Charlie:
-            `$$ new Charlie`
-        Expected Output:
-            `Charlie has been added.`
-
-    **edit**
-        You want to edit player "Bob" to add a large blue diamond and climbing
-            `$$ edit "bob" "🔷Bob⏫"`
-        Expected Output:
-            `Bob ➡️ 🔷Bob⏫`
-
-    **move**
-        You want to move player "Bob" up 2 spaces
-            `$$ move bob 2`
-
-    **remove**
-        You want to remove player Dan:
-            `$$ remove Dan`
-        Expected Output:
-            `Dan has been removed.`
-
-    **active**
-        You want to make Eddie inactive and put a timer before his name:
-            `$$ active Eddie false`
-        Expected Output:
-            `Eddie is now inactive.`
-"""
+def get_help():
+    with open("help_text.md") as f:
+        help_msg = f.read()
     truncated_help_msg = help_msg.replace(4*" ", "\t")  # 2000 chars adds up quick
-    await author.send(about_msg)
-    await author.send(truncated_help_msg)
+    return truncated_help_msg
+
+
+async def send_message_partials(destination, remainder):
+    # Loop over text and send message parts from the remainder until remainder is no more
+    while len(remainder) > 0:
+        chars_per_msg = 2000
+        if len(remainder) < chars_per_msg:
+            chars_per_msg = len(remainder)
+        msg_part = remainder[:chars_per_msg]
+        remainder = remainder[chars_per_msg:]
+        # Only break on newline
+        if len(remainder) > 0:
+            while remainder[0] != "\n":
+                remainder = msg_part[-1] + remainder
+                msg_part = msg_part[:-1]
+            # Discord will delete whitespace before a message
+            # so preserve that whitespace by inserting a character
+            while remainder[0] == "\n":
+                remainder = remainder[1:]
+            if remainder[0] == "\t":
+                remainder = ".   " + remainder[1:]
+        await destination.send(msg_part)
 
 
 client.run(TOKEN)

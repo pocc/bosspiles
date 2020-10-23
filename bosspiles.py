@@ -84,7 +84,7 @@ class BossPile:
             num_down = self.players[loser_pos].orange_diamonds + 1
             # Don't interrupt an existing game
             messages += [f"{p2_name} goes down {str(num_down)} spaces."]
-            if num_down < len(self.players) and \
+            if num_down+1 < len(self.players) and \
                     self.players[num_down+1].climbing and not self.players[num_down].climbing:
                 num_down += 1
                 messages += [f"{p2_name} goes down an additional space to not interrupt a game."]
@@ -132,7 +132,6 @@ class BossPile:
                 loser_id = ID
         new_matches = []
         old_matches = []
-        warnings = []
         def tag_user(user_id, name):
             if user_id == -1:
                 return name
@@ -153,12 +152,14 @@ class BossPile:
                 if right_name.lower().startswith(self.nicknames[userid].lower()):
                     right_id = userid
             if left_id == -1:
-                warnings += [f"*Is `{left_name}` a player on this server?*"]
+                print(f"*Is `{left_name}` a player on this server?*")
             if right_id == -1:
-                warnings += [f"*Is `{right_name}` a player on this server?*"]
+                print(f"*Is `{right_name}` a player on this server?*")
             # Only tag the victor and the next person they face
             new_games_from_win = (left_id == victor_id or right_id == victor_id
-            or left_id == loser_id or right_id == loser_id)
+            or left_id == loser_id or right_id == loser_id
+            or left_name.startswith(victor) or left_name.startswith(loser)
+            or right_name.startswith(victor) or right_name.startswith(loser))
             if new_games_from_win:
                 left = tag_user(left_id, left_name)
                 right = tag_user(right_id, right_name)
@@ -170,7 +171,7 @@ class BossPile:
                 # Do people want this?
                 # if not self.game.lower().contains("terraforming") and "Coxy5" not in [left, right]:
                 #    ret_messages.append(f"!bga tables {left} {right}")
-        paragraph_message = "\n".join(messages + new_matches + warnings + old_matches)
+        paragraph_message = "\n".join(messages + new_matches + old_matches)
         paragraph_message += "\n\n" + self.generate_bosspile()
         return paragraph_message
 
