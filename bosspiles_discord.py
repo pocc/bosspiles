@@ -9,7 +9,9 @@ import discord
 from bosspiles import BossPile
 from keys import TOKEN
 
-client = discord.Client()
+# Intents are required as of discord 1.5
+intents = discord.Intents(messages=True, guilds=True, members=True)
+client = discord.Client(intents=intents)
 
 
 class GracefulCoroutineExit(Exception):
