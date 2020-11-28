@@ -48,7 +48,10 @@ async def parse_args(msg_text):
     """Parse the args and tell the user if they are not valid."""
     while len(msg_text) > 0 and msg_text[0] == '$':
         msg_text = msg_text[1:]
-    args = shlex.split(msg_text)
+    try:
+        args = shlex.split(msg_text)
+    except ValueError:
+        return [], "Problem parsing arguments. Try quoting or not using special characters."
     if len(args) == 0 or args[0][0] == 'h':  # on `$` or `$help`
         help_text = get_help()
         return [], help_text
@@ -69,8 +72,7 @@ async def get_pinned_bosspile(message):
         return None, "This channel has no pins (a pinned bosspile is required)"
     for pin in pins:
         if (":crown:" in pin.content or "👑" in pin.content) \
-                and (":small_orange_diamond:" in pin.content or "🔸" in pin.content
-                    or ":arrow_double_up" in pin.content or "⏫" in pin.content):
+                and (":small_orange_diamond:" in pin.content or "🔸" in pin.content or "arrow_double_up" in pin.content or "⏫" in pin.content):
             return pin, ""
     return None, "This channel has no bosspile pins! Pin your bosspile message and try again."
 
@@ -141,7 +143,7 @@ async def run_bosspiles(message):
     if (
         args[0].startswith("w")
         and "Standings" in return_message  # Bosspile Standings or Ladder Standings in title
-        and (day_expires -  dt.datetime.now()).days < 20
+        and (day_expires - dt.datetime.now()).days < 20
         and message.guild.id == bosspile_server_id
     ):
         return_message += contributors_line
@@ -155,6 +157,7 @@ async def run_bosspiles(message):
             await message.channel.send("Created new bosspile pin because this bot can only edit its own messages.")
     return return_message
 
+
 def generate_contrib_line():
     contributions = {
         "Coxy5": 15,
@@ -162,10 +165,11 @@ def generate_contrib_line():
     }
     total_contrib = sum(list(contributions.values()))
     MONTHLY_HOSTING_COST = 5.2
-    days_bought = total_contrib/MONTHLY_HOSTING_COST*30
+    days_bought = total_contrib / MONTHLY_HOSTING_COST * 30
     day_expires = (dt.datetime(2020, 8, 1, 0, 0, 0, 0) + dt.timedelta(days=days_bought))
     isodate_expires = day_expires.date().isoformat()
     return f"\n_Hosting paid for until {isodate_expires} thanks to [{', '.join(list(contributions.keys()))}]._", day_expires
+
 
 async def unpin_bot_pins(args, message):
     """Unpin all of the bot's pins."""
@@ -176,6 +180,7 @@ async def unpin_bot_pins(args, message):
             await message.channel.send(pin.content)
             await message.bp_pin.unpin(reason=' '.join(args[1:]))
     return "Bosspile unpinned successfully!"
+
 
 async def send_table_embed(message, game, active_players, inactive_players):
     """Create a discord embed to send the message about table creation."""
@@ -192,7 +197,7 @@ async def send_table_embed(message, game, active_players, inactive_players):
 def get_help():
     with open("help_text.md") as f:
         help_msg = f.read()
-    truncated_help_msg = help_msg.replace(4*" ", "\t")  # 2000 chars adds up quick
+    truncated_help_msg = help_msg.replace(4 * " ", "\t")  # 2000 chars adds up quick
     return truncated_help_msg
 
 

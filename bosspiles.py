@@ -19,10 +19,9 @@ class BossPile:
     def __init__(self, game: str, nicknames, bosspile_text: str):
         self.game = game
         self.nicknames = nicknames
-        # See regex w examples: https://regex101.com/r/iF4cVx/9 , used to parse one player line
-        regex = r"(?:^|\n)\s*~*(?::[a-z_]*: ?)* *([\w();,_+]+(?: *[\w();,_+]+)*) *(?::[a-z_]*:)* *~*$"
+        # See regex w examples: https://regex101.com/r/iF4cVx/10 , used to parse one player line
+        regex = r"(?:^|\n)\s*~*(?::[a-z_]*: ?)* *([\w().;,_+]+(?: *[\w();,_+]+)*) *(?::[a-z_]*:)* *~*$"
         self.player_line_re = re.compile(regex)
-
         self.players = self.parse_bosspile(bosspile_text)
 
     def find_player_pos(self, player_name):
@@ -84,11 +83,11 @@ class BossPile:
             num_down = self.players[loser_pos].orange_diamonds + 1
             # Don't interrupt an existing game
             messages += [f"{p2_name} goes down {str(num_down)} spaces."]
-            if num_down+1 < len(self.players) and \
-                    self.players[num_down+1].climbing and not self.players[num_down].climbing:
+            if num_down + 1 < len(self.players) and \
+                    self.players[num_down + 1].climbing and not self.players[num_down].climbing:
                 num_down += 1
                 messages += [f"{p2_name} goes down an additional space to not interrupt a game."]
-            self.players = self.players[1:num_down+1] + [self.players[0]] + self.players[num_down+1:]
+            self.players = self.players[1:num_down + 1] + [self.players[0]] + self.players[num_down + 1:]
         return messages
 
     def win(self, victor):
@@ -116,8 +115,8 @@ class BossPile:
             self.players[victor_pos], self.players[loser_pos] = self.players[loser_pos], self.players[victor_pos]
         # If user is boss and wins, add an orange diamond
         if victor_is_boss:
-            messages += [self.players[victor_pos].username
-                        + " has defended the :crown: and gains :small_orange_diamond:"]
+            defended_str = " has defended the :crown: and gains :small_orange_diamond:"
+            messages += [self.players[victor_pos].username + defended_str]
             self.players[victor_pos].orange_diamonds += 1
         self.set_climbing_invariants()
         matches = self.generate_matches()
@@ -132,10 +131,12 @@ class BossPile:
                 loser_id = ID
         new_matches = []
         old_matches = []
+
         def tag_user(user_id, name):
             if user_id == -1:
                 return name
             return "<@" + user_id + ">"
+
         def get_user_by_id(user_id, name):
             if user_id == -1:
                 return name
@@ -157,9 +158,9 @@ class BossPile:
                 print(f"*Is `{right_name}` a player on this server?*")
             # Only tag the victor and the next person they face
             new_games_from_win = (left_id == victor_id or right_id == victor_id
-            or left_id == loser_id or right_id == loser_id
-            or left_name.startswith(victor) or left_name.startswith(loser)
-            or right_name.startswith(victor) or right_name.startswith(loser))
+                or left_id == loser_id or right_id == loser_id
+                or left_name.startswith(victor) or left_name.startswith(loser)
+                or right_name.startswith(victor) or right_name.startswith(loser))
             if new_games_from_win:
                 left = tag_user(left_id, left_name)
                 right = tag_user(right_id, right_name)
@@ -168,9 +169,6 @@ class BossPile:
                 left = get_user_by_id(left_id, left_name)
                 right = get_user_by_id(right_id, right_name)
                 old_matches += [f":hourglass: {left} :vs: {right}"]
-                # Do people want this?
-                # if not self.game.lower().contains("terraforming") and "Coxy5" not in [left, right]:
-                #    ret_messages.append(f"!bga tables {left} {right}")
         paragraph_message = "\n".join(messages + new_matches + old_matches)
         paragraph_message += "\n\n" + self.generate_bosspile()
         return paragraph_message
@@ -224,7 +222,7 @@ class BossPile:
         if len(err_msg) > 0:
             return err_msg
         if not relative_pos.isdigit() and not relative_pos[0] == '-' and not relative_pos[1:].isdigit():
-            return f"Relative position must be an integer."
+            return "Relative position must be an integer."
         # While list starts at 0 and goes down, it preserves intuition
         # To put in positive numbers and go up, so invert rel pos
         new_pos = player_pos - int(relative_pos)
@@ -236,7 +234,6 @@ class BossPile:
         self.players.remove(moving_player)
         self.players.insert(new_pos, moving_player)
         return f"Successfully moved {player} {relative_pos} spaces"
-
 
     def remove(self, player_name):
         """Delete a player from the leaderboard. Returns whether there was a successful deletion or not."""
@@ -327,9 +324,9 @@ class BossPile:
             return f"\n {player.username}\n"
         bosspile_line = ""
         if not player.active:
-            bosspile_line += f"~~"
+            bosspile_line += "~~"
         bosspile_line += player.blue_diamonds * ":large_blue_diamond:"
-        bosspile_line += (player.orange_diamonds//5) * ":large_orange_diamond:"
+        bosspile_line += (player.orange_diamonds // 5) * ":large_orange_diamond:"
         bosspile_line += (player.orange_diamonds % 5) * ":small_orange_diamond:"
         bosspile_line += f" {player.username} "
         # :arrow_double_up: and :cloud: are both climbing
