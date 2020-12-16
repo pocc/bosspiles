@@ -117,6 +117,8 @@ async def execute_command(args, bosspile):
 async def run_bosspiles(message):
     """Run the bosspiles program ~ main()."""
     print(f"Received message `{message.content}`")
+    if "sushi-go-mbosspile" in message.channel.name:
+        return "Coxy5 manages this bosspile, not the bosspiles bot. Ping him instead."
     args, errs = await parse_args(message.content)
     if errs:
         return errs
@@ -128,9 +130,12 @@ async def run_bosspiles(message):
     if args[0] == "unpin":
         # Unpin requires a reason
         if len(args) < 2:
-            await message.channel.send("You need to provide a reason for the unpin (1+ words).")
-            return "Syntax error."
-        unpin_bot_pins(args, message)
+            await message.author.send("You need to provide a reason for the unpin (1+ words).")
+        elif message.author.id == 234561564697559041 or message.author.guild_permissions.administrator:
+            await unpin_bot_pins(args, message)
+        else:
+            await message.author.send("You don't have permissions to unpin.")
+        return ""
     bp_pin, errs = await get_pinned_bosspile(message)
     if errs:
         return errs
@@ -181,7 +186,7 @@ async def unpin_bot_pins(args, message):
         if pin.author == client.user:  # If this bot created it
             await message.channel.send("Bosspile being unpinned:")
             await message.channel.send(pin.content)
-            await message.bp_pin.unpin(reason=' '.join(args[1:]))
+            await pin.unpin(reason=' '.join(args[1:]))
     return "Bosspile unpinned successfully!"
 
 

@@ -23,6 +23,16 @@ class BossPile:
         regex = r"(?:^|\n)\s*~*(?::[a-z_]*: ?)* *([\w().;,_+]+(?: *[\w();,_+]+)*) *(?::[a-z_]*:)* *~*$"
         self.player_line_re = re.compile(regex)
         self.players = self.parse_bosspile(bosspile_text)
+        self.title_line = bosspile_text.split('\n')[0]
+        if "Standings" not in self.title_line:
+            self.title_line = ""
+        # always prefer more players
+        matches = re.search(r"(\d)-(\d)", self.title_line)
+        self.min_players = 2
+        self.max_players = 2
+        if matches:
+            self.min_players = matches[1]
+            self.min_players = matches[2]
 
     def find_player_pos(self, player_name):
         """Find the player position in the player list or -1 and error"""
@@ -40,36 +50,51 @@ class BossPile:
             return player_pos, f"Player {player_name} not found. No changes made."
         return player_pos, err
 
-    def validate_win(self, victor, loser_pos, victor_pos):
+    def validate_win(self, victor, loser_positions, victor_pos):
         """Ensure that win meets parameters."""
         if victor_pos == -1:
             return f"`{victor}` is not a valid player name. You may need to quote or check capitalization."
         if not self.players[victor_pos].active:
             return f"`{victor}` is not active and cannot play games."
 
-        num_climbers = self.players[victor_pos].climbing + self.players[loser_pos].climbing
+        num_climbers = self.players[victor_pos].climbing
+        for loser_pos in loser_positions:
+            num_climbers += self.players[loser_pos].climbing
         if num_climbers != 1:
             return f"{num_climbers} climbers found (1 required) at positions " \
-                f"{victor_pos}/{loser_pos}. No changes made."
+                f"{victor_pos}/{'/'.join([str(i) for i in loser_positions])}. No changes made."
         return ""
 
-    def find_loser_pos(self, victor_pos, victor_is_boss):
-        """Get the position of the loser provided the winner's position."""
-        # If you are climbing, then you move and you played the person above.
-        if self.players[victor_pos].climbing and not victor_is_boss:
-            loser_pos = victor_pos - 1
-            # The loser should not be an inactive player
-            while loser_pos >= 0 and not self.players[loser_pos].active:
-                loser_pos -= 1
-        else:  # Otherwise you defended a challenge
-            loser_pos = victor_pos + 1
-            # The loser should not be an inactive player
+    def find_loser_positions(self, victor_pos):
+        """Get the positions of the losers provided the winner's position.
+        1. Find the climber pos which started the game
+        2. Find the positions of all players up to the next climber that is <= self.max_players
+        3. Return the positions that are not victors
+        """
+        # Increase position from victor until we get to the climber
+        # min/max referring to place on ladder (lower => min ~ higher number)
+        min_pos = victor_pos
+        while not self.players[min_pos].climbing:
+            min_pos += 1
+        # Find the next highest climber or max players, whichever comes first
+        max_pos = min_pos - 1
+        while not self.players[max_pos].climbing and min_pos - max_pos < self.max_players - 1:
+            max_pos -= 1
+        loser_positions = []
+        for i in range(max_pos, min_pos+1):  # +1 due to range end not including number
+            if i != victor_pos:
+                loser_positions.append(i)
+        # The loser should not be an inactive player
+        for loser_pos in loser_positions:
             while loser_pos < len(self.players) and not self.players[loser_pos].active:
                 loser_pos += 1
-        return loser_pos
+        loser_positions.sort()
+        return loser_positions
 
-    def dethrone_boss(self, victor_pos, loser_pos):
+    def dethrone_boss(self, victor_pos):
         # If user is boss and loses, move to bottom and convert 5 orange => blue
+        # if the boss is dethroned, their position is 0
+        loser_pos = 0
         p1_name = self.players[victor_pos].username
         p2_name = self.players[loser_pos].username
         messages = [f"{p2_name} has lost the :crown: to {p1_name}"]
@@ -98,28 +123,45 @@ class BossPile:
         victor_is_boss = victor_pos == 0
         if len(err_msg) > 0:
             return err_msg
-        loser_pos = self.find_loser_pos(victor_pos, victor_is_boss)
-        loser_is_boss = loser_pos == 0
-        err_msg = self.validate_win(victor, loser_pos, victor_pos)
+        loser_positions = self.find_loser_positions(victor_pos)
+        # Any of the losers is the boss
+        loser_is_boss = any([pos == 0 for pos in loser_positions])
+        err_msg = self.validate_win(victor, loser_positions, victor_pos)
         if len(err_msg) > 0:
             return err_msg
-        loser = self.players[loser_pos].username
-        messages = [self.players[victor_pos].username + " defeats " + self.players[loser_pos].username + "\n"]
+        loser_names = [self.players[pos].username for pos in loser_positions]
+        messages = [self.players[victor_pos].username + " defeats " + ', '.join(loser_names) + "\n"]
         self.players[victor_pos].climbing = True
-        self.players[loser_pos].climbing = False
+        for pos in loser_positions:
+            self.players[pos].climbing = False
         if loser_is_boss:
-            new_messages = self.dethrone_boss(victor_pos, loser_pos)
+            new_messages = self.dethrone_boss(victor_pos)
             messages += new_messages
-        # If winner is higher in array (lower in ladder), players switch places
-        elif victor_pos > loser_pos:
-            self.players[victor_pos], self.players[loser_pos] = self.players[loser_pos], self.players[victor_pos]
+        elif any([victor_pos > loser_pos for loser_pos in loser_positions]):
+            # victor moves to where the highest player was and all losers move down 1
+            highest_pos = min(victor_pos, *loser_positions)  # crown at top is position 0
+            # Copy all players to another variable so as to not overwrite players
+            players_copy = list(self.players)
+            self.players[highest_pos] = players_copy[victor_pos]
+            for pos in loser_positions:
+                # If the victor moved past this position, then move this position down one; otherwise don't move down
+                if victor_pos > pos:
+                    self.players[pos+1] = players_copy[pos]
         # If user is boss and wins, add an orange diamond
         if victor_is_boss:
             defended_str = " has defended the :crown: and gains :small_orange_diamond:"
             messages += [self.players[victor_pos].username + defended_str]
             self.players[victor_pos].orange_diamonds += 1
         self.set_climbing_invariants()
+        matches_text = self.get_matches_text(victor, loser_names[0])
+        paragraph_message = "\n".join(messages) + "\n" + matches_text
+        paragraph_message += "\n\n" + self.generate_bosspile()
+        return paragraph_message
+
+    def get_matches_text(self, victor, loser):
         matches = self.generate_matches()
+        if self.max_players > 2:  # Implement this later
+            return "\n".join(matches)
         loser_id = 0
         victor_id = 0
         for ID in self.nicknames:
@@ -138,12 +180,13 @@ class BossPile:
             return "<@" + user_id + ">"
 
         for match in matches:
+            left_player, right_player = match
+            left_name = left_player.username
+            right_name = right_player.username
             # Left and right ID are a different default than loser/winner so that
             # The defaults cannot be equal
-            print(locals())
             left_id = -1
             right_id = -1
-            left_name, right_name = match
             for userid in self.nicknames:
                 if left_name.lower().startswith(self.nicknames[userid].lower()):
                     left_id = userid
@@ -164,9 +207,7 @@ class BossPile:
                 new_matches += [f":crossed_swords: {left} :vs: {right}\n"]
             else:
                 old_matches += [f":hourglass: {left_name} :vs: {right_name}"]
-        paragraph_message = "\n".join(messages + new_matches + old_matches)
-        paragraph_message += "\n\n" + self.generate_bosspile()
-        return paragraph_message
+        return "\n".join(new_matches + old_matches)
 
     def set_climbing_invariants(self):
         """There are climbing invariants that need to be imposed on players.
@@ -181,11 +222,17 @@ class BossPile:
         """Create the matches based on who is climbing."""
         matches = []
         active_players = [p for p in self.players if p.active]
-        for i in range(len(active_players)):
-            player = active_players[i]
-            player_below = active_players[i-1]
-            if i > 0 and player.climbing and not player_below.climbing:
-                matches.append((player.username, player_below.username))
+        counter = len(active_players) - 1  # start at bottom and go up; -1 fencepost error
+        while counter > 0:
+            players_in_match = 1
+            # Keep adding players to this table if they aren't climbing
+            while counter > 0 and not active_players[counter-1].climbing and players_in_match < self.max_players:
+                players_in_match += 1
+                counter -= 1
+            if players_in_match > 1:
+                match_players = active_players[counter:counter+players_in_match]
+                matches.append(match_players)
+            counter -= players_in_match
         return matches
 
     def add(self, player_name):
