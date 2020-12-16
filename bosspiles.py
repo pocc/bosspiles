@@ -137,13 +137,10 @@ class BossPile:
                 return name
             return "<@" + user_id + ">"
 
-        def get_user_by_id(user_id, name):
-            if user_id == -1:
-                return name
-            return self.nicknames[user_id]
         for match in matches:
             # Left and right ID are a different default than loser/winner so that
             # The defaults cannot be equal
+            print(locals())
             left_id = -1
             right_id = -1
             left_name, right_name = match
@@ -166,9 +163,7 @@ class BossPile:
                 right = tag_user(right_id, right_name)
                 new_matches += [f":crossed_swords: {left} :vs: {right}\n"]
             else:
-                left = get_user_by_id(left_id, left_name)
-                right = get_user_by_id(right_id, right_name)
-                old_matches += [f":hourglass: {left} :vs: {right}"]
+                old_matches += [f":hourglass: {left_name} :vs: {right_name}"]
         paragraph_message = "\n".join(messages + new_matches + old_matches)
         paragraph_message += "\n\n" + self.generate_bosspile()
         return paragraph_message
@@ -293,7 +288,8 @@ class BossPile:
         if matches:
             username = matches[0]
         else:
-            print(f"Line did not match regex `{player_line}`")
+            if not player_line.startswith("__**"):  # bosspile standing line
+                print(f"Line did not match regex `{player_line}`")
             return None
         active = ":timer:" not in player_line and "__" not in player_line
         climbing = active and (":arrow_double_up:" in player_line or ":thought_balloon:" in player_line)

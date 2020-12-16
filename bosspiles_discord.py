@@ -163,7 +163,8 @@ async def run_bosspiles(message):
 def generate_contrib_line():
     contributions = {
         "Coxy5": 15,
-        "Corwin007": 10
+        "Corwin007": 10,
+        "tarpshack": 25
     }
     total_contrib = sum(list(contributions.values()))
     MONTHLY_HOSTING_COST = 5.2
