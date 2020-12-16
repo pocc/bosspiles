@@ -24,15 +24,15 @@ class BossPile:
         self.player_line_re = re.compile(regex)
         self.players = self.parse_bosspile(bosspile_text)
         self.title_line = bosspile_text.split('\n')[0]
-        if "Standings" not in self.title_line:
+        if "bosspile" not in self.title_line.lower():
             self.title_line = ""
         # always prefer more players
         matches = re.search(r"(\d)-(\d)", self.title_line)
         self.min_players = 2
         self.max_players = 2
         if matches:
-            self.min_players = matches[1]
-            self.min_players = matches[2]
+            self.min_players = int(matches[1])
+            self.max_players = int(matches[2])
 
     def find_player_pos(self, player_name):
         """Find the player position in the player list or -1 and error"""
@@ -161,7 +161,15 @@ class BossPile:
     def get_matches_text(self, victor, loser):
         matches = self.generate_matches()
         if self.max_players > 2:  # Implement this later
-            return "\n".join(matches)
+            match_texts = [">2P matchups partially implemented."]
+            for m in matches:
+                match_text = ":hourglass:"
+                for p in m:
+                    match_text += " " + p.username
+                    if p != m[len(m)-1]:
+                        match_text += " :vs:"
+                match_texts.append(match_text)
+            return "\n".join(match_texts)
         loser_id = 0
         victor_id = 0
         for ID in self.nicknames:
@@ -232,7 +240,7 @@ class BossPile:
             if players_in_match > 1:
                 match_players = active_players[counter:counter+players_in_match]
                 matches.append(match_players)
-            counter -= players_in_match
+            counter -= 1
         return matches
 
     def add(self, player_name):
@@ -345,7 +353,11 @@ class BossPile:
 
     def generate_bosspile(self):
         """Generate the bosspile text from the stored configuration."""
-        bosspile_text = "__**Bosspile Standings**__\n\n"
+        if self.title_line:
+            bosspile_text = self.title_line
+        else:
+            bosspile_text = "__**Bosspile Standings**__"
+        bosspile_text += "\n\n"
         crown_placed = False  # crown should only be placed on first active player
         prev_player_climbing = False
         for player in self.players:
