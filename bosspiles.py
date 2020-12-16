@@ -233,8 +233,8 @@ class BossPile:
         counter = len(active_players) - 1  # start at bottom and go up; -1 fencepost error
         while counter > 0:
             players_in_match = 1
-            # Keep adding players to this table if they aren't climbing
-            while counter > 0 and not active_players[counter-1].climbing and players_in_match < self.max_players:
+            # Add players if this player is climbing and the next is not or players_in_match > 1 and next player is not climbing
+            while counter > 0 and players_in_match < self.max_players and not active_players[counter-1].climbing and (active_players[counter].climbing or players_in_match > 1):
                 players_in_match += 1
                 counter -= 1
             if players_in_match > 1:

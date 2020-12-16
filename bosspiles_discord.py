@@ -149,7 +149,7 @@ async def run_bosspiles(message):
     contributors_line, day_expires = generate_contrib_line()
     if (
         args[0].startswith("w")
-        and "Standings" in return_message  # Bosspile Standings or Ladder Standings in title
+        and ("standings" in return_message.lower() or "bosspile" in return_message.lower())  # Bosspile Standings or Ladder Standings in title
         and (day_expires - dt.datetime.now()).days < 20
         and message.guild.id == bosspile_server_id
     ):
