@@ -77,8 +77,8 @@ class BossPile:
         while not self.players[min_pos].climbing:
             min_pos += 1
         # Find the next highest climber or max players, whichever comes first
-        max_pos = min_pos - 1
-        while not self.players[max_pos].climbing and min_pos - max_pos < self.max_players - 1:
+        max_pos = min_pos
+        while not self.players[max_pos-1].climbing and min_pos - max_pos < self.max_players - 1:
             max_pos -= 1
         loser_positions = []
         for i in range(max_pos, min_pos+1):  # +1 due to range end not including number
@@ -161,7 +161,7 @@ class BossPile:
     def get_matches_text(self, victor, loser):
         matches = self.generate_matches()
         if self.max_players > 2:  # Implement this later
-            match_texts = [">2P matchups partially implemented."]
+            match_texts = ["2+ player matchups partially implemented."]
             for m in matches:
                 match_text = ":hourglass:"
                 for p in m:
@@ -365,7 +365,7 @@ class BossPile:
             if player.active:  # Skip inactive players
                 prev_player_climbing = player.climbing
                 if not crown_placed:
-                    bosspile_line = " :crown: " + bosspile_line
+                    bosspile_line = ":crown: " + bosspile_line
                     crown_placed = True
             bosspile_text += bosspile_line
         return bosspile_text
@@ -380,18 +380,18 @@ class BossPile:
         bosspile_line = ""
         if not player.active:
             bosspile_line += "~~"
-        bosspile_line += player.blue_diamonds * ":large_blue_diamond:"
-        bosspile_line += (player.orange_diamonds // 5) * ":large_orange_diamond:"
-        bosspile_line += (player.orange_diamonds % 5) * ":small_orange_diamond:"
-        bosspile_line += f" {player.username} "
+        bosspile_line += player.blue_diamonds * ":large_blue_diamond: "
+        bosspile_line += (player.orange_diamonds // 5) * ":large_orange_diamond: "
+        bosspile_line += (player.orange_diamonds % 5) * ":small_orange_diamond: "
+        bosspile_line += f"{player.username}"
         # :arrow_double_up: and :cloud: are both climbing
         # Use :cloud: if the player above has :arrow_double_up: or :cloud:
         if player.active:
             if player.climbing:
                 if not prev_player_climbing:
-                    bosspile_line += ":arrow_double_up:"
+                    bosspile_line += " :arrow_double_up:"
                 else:
-                    bosspile_line += ":thought_balloon:"
+                    bosspile_line += " :thought_balloon:"
         else:
             bosspile_line += ":timer:~~"
         bosspile_line += '\n'
