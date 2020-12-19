@@ -23,7 +23,7 @@ class GracefulCoroutineExit(Exception):
 @client.event
 async def on_ready():
     """Let the user who started the bot know that the connection succeeded."""
-    print(f'{client.user.name} has connected to Discord!')
+    print(f'{client.user.name} has connected to Discord, and is active on {len(client.guilds)} servers!')
     # Create words under bot that say "Listening to !bga"
     listening_to_help = discord.Activity(type=discord.ActivityType.listening, name="$")
     await client.change_presence(activity=listening_to_help)
@@ -73,7 +73,12 @@ async def get_pinned_bosspile(message):
     if len(pins) == 0:
         return None, "This channel has no pins (a pinned bosspile is required)"
     for pin in pins:
-        if (":crown:" in pin.content or "👑" in pin.content) \
+        # First try to get pins by this bot before other messages
+        if pin.author.id == client.user.id:
+            return pin, ""
+        # If it has the format of a bosspile, treat it like one
+        elif ("\n:crown:" in pin.content or "\n👑" in pin.content) \
+                and '\n' in pin.content and pin.content.lower().split('\n')[0].contains('bosspile') \
                 and (":small_orange_diamond:" in pin.content or "🔸" in pin.content or "arrow_double_up" in pin.content or "⏫" in pin.content):
             return pin, ""
     return None, "This channel has no bosspile pins! Pin your bosspile message and try again."
