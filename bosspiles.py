@@ -1,6 +1,9 @@
 """Bosspiles for use by BGA bosspiles discord server"""
 import re
 
+import emoji
+
+
 MINIMUM_BOSSPILE_PLAYERS = 3
 
 
@@ -19,8 +22,8 @@ class BossPile:
     def __init__(self, game: str, nicknames, bosspile_text: str):
         self.game = game
         self.nicknames = nicknames
-        # See regex w examples: https://regex101.com/r/iF4cVx/10 , used to parse one player line
-        regex = r"(?:^|\n)\s*~*(?::[a-z_]*: ?)* *([\w().;,_+]+(?: *[\w();,_+]+)*) *(?::[a-z_]*:)* *~*$"
+        # See regex w examples: https://regex101.com/r/iF4cVx/11 , used to parse one player line
+        regex = r"(?:^|\n)\s*~*(?::[a-z_]*: ?)* *([\w._ ]+ *(?:\([\w,_ :]*\))?) *(?::[\w_]*:)* *~*$"
         self.player_line_re = re.compile(regex)
         self.players = self.parse_bosspile(bosspile_text)
         self.title_line = bosspile_text.split('\n')[0]
@@ -325,17 +328,10 @@ class BossPile:
         all_player_data[-1].climbing = True
         return all_player_data
 
-    @staticmethod
-    def parse_emojis_as_discord_text(bosspile_text):
-        """Replace emojis with discord emoji names with colons."""
-        bosspile_text = bosspile_text.replace("👑", ":crown:").replace("🔸", ":small_orange_diamond:")\
-            .replace("🔶", ":large_orange_diamond:").replace("🔷", ":large_blue_diamond:")\
-            .replace("⏫", ":arrow_double_up:").replace("💭", ":thought_balloon:").replace("⏲️", ":timer:")
-        return bosspile_text
-
-    def parse_bosspile_line(self, player_line: str):
+    def parse_bosspile_line(self, player_line_initial: str):
         """Parse one line of the bosspile and return a player line."""
-        player_line = self.parse_emojis_as_discord_text(player_line)
+        player_line = emoji.demojize(player_line_initial, use_aliases=True)
+        player_line = player_line.replace('  ', ' ')  # Get rid of extra spaces in player line
         orange_diamonds = player_line.count(":small_orange_diamond:")
         orange_diamonds += 5 * player_line.count(":large_orange_diamond:")
         blue_diamonds = player_line.count(":large_blue_diamond:")
