@@ -1,5 +1,7 @@
 """Discord client."""
 import datetime as dt
+import logging
+from logging.handlers import RotatingFileHandler
 import json
 import shlex
 import traceback
@@ -8,6 +10,16 @@ import discord
 
 from bosspiles import BossPile
 from keys import TOKEN
+
+LOG_FILENAME = "errs"
+logger = logging.getLogger(__name__)
+logging.getLogger("discord").setLevel(logging.WARN)
+# Add the log message handler to the logger
+handler = RotatingFileHandler(LOG_FILENAME, maxBytes=10000000, backupCount=0)
+formatter = logging.Formatter("%(asctime)s | %(name)s | %(levelname)s | %(message)s")
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+logger.setLevel(logging.DEBUG)
 
 # Intents are required as of discord 1.5
 intents = discord.Intents(messages=True, guilds=True, members=True)
@@ -23,7 +35,7 @@ class GracefulCoroutineExit(Exception):
 @client.event
 async def on_ready():
     """Let the user who started the bot know that the connection succeeded."""
-    print(f'{client.user.name} has connected to Discord, and is active on {len(client.guilds)} servers!')
+    logger.debug(f'{client.user.name} has connected to Discord, and is active on {len(client.guilds)} servers!')
     # Create words under bot that say "Listening to !bga"
     listening_to_help = discord.Activity(type=discord.ActivityType.listening, name="$")
     await client.change_presence(activity=listening_to_help)
@@ -78,7 +90,7 @@ async def get_pinned_bosspile(message):
             return pin, ""
         # If it has the format of a bosspile, treat it like one
         elif ("\n:crown:" in pin.content or "\n👑" in pin.content) \
-                and '\n' in pin.content and pin.content.lower().split('\n')[0].contains('bosspile') \
+                and '\n' in pin.content and 'bosspile' in pin.content.lower().split('\n')[0] \
                 and (":small_orange_diamond:" in pin.content or "🔸" in pin.content or "arrow_double_up" in pin.content or "⏫" in pin.content):
             return pin, ""
     return None, "This channel has no bosspile pins! Pin your bosspile message and try again."
@@ -90,25 +102,25 @@ async def execute_command(args, bosspile):
     if "win".startswith(args[0]):
         victor = ' '.join(args[1:])
         return bosspile.win(victor)
-    elif "new".startswith(args[0]):  # new
+    elif "new".startswith(args[0]):
         player_name = ' '.join(args[1:])
         return bosspile.add(player_name)
-    elif "edit".startswith(args[0]):  # edit
+    elif "edit".startswith(args[0]):
         old_line = args[1]
         new_line = args[2]
         return bosspile.edit(old_line, new_line)
-    elif "move".startswith(args[0]):  # move
+    elif "move".startswith(args[0]):
         player = ' '.join(args[1:-1])
         relative_position = args[-1]
         return bosspile.move(player, relative_position)
-    elif "remove".startswith(args[0]):  # remove
+    elif "remove".startswith(args[0]):
         player_name = ' '.join(args[1:])
         return bosspile.remove(player_name)
-    elif "active".startswith(args[0]):  # active
+    elif "active".startswith(args[0]):
         player_name = ' '.join(args[1:-1])
         state = args[-1].lower().startswith("t")  # t for true, anything else is false
         return bosspile.change_active_status(player_name, state)
-    elif "print".startswith(args[0]):  # print
+    elif "print".startswith(args[0]):
         if len(args) > 1:
             if args[1].startswith("d"):  # debug
                 return "\n".join([json.dumps(p.__dict__) for p in bosspile.players])
@@ -121,7 +133,7 @@ async def execute_command(args, bosspile):
 
 async def run_bosspiles(message):
     """Run the bosspiles program ~ main()."""
-    print(f"Received message `{message.content}`")
+    logger.debug(f"Received message `{message.content}`")
     if "sushi-go-mbosspile" in message.channel.name:
         return "Coxy5 manages this bosspile, not the bosspiles bot. Ping him instead."
     args, errs = await parse_args(message.content)

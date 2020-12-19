@@ -116,3 +116,21 @@ def main():
 
 
 main()
+
+
+# Catching past errors
+def test_multiple_parentheses():
+    weird_line = ":crown: nmego (2P ok) (:star:)"
+    expected = """Unable to parse line `:crown: nmego (2P ok) (:star:)`.
+Player name can only contain alphanumeric characters, `_`, `.`, and spaces.
+Preferences must all be within one () and can contain alphanumeric characters, `,`, `_`, `:`, and spaces."""
+    bp = BossPile("potionexplosion", [], POTION_EXPLOSION_BOSSPILE)
+    result = bp.edit("nmego", weird_line)
+    assert_equal(expected, result)
+
+
+def dont_repeat_mistakes():
+    test_multiple_parentheses()
+
+
+dont_repeat_mistakes()

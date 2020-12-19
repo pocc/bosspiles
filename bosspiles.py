@@ -1,8 +1,17 @@
 """Bosspiles for use by BGA bosspiles discord server"""
+import logging
+from logging.handlers import RotatingFileHandler
 import re
 
 import emoji
 
+LOG_FILENAME = 'errs'
+logger = logging.getLogger(__name__)
+handler = RotatingFileHandler(LOG_FILENAME, maxBytes=10000000, backupCount=0)
+formatter = logging.Formatter("%(asctime)s | %(name)s | %(levelname)s | %(message)s")
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+logger.setLevel(logging.DEBUG)
 
 MINIMUM_BOSSPILE_PLAYERS = 3
 
@@ -22,9 +31,24 @@ class BossPile:
     def __init__(self, game: str, nicknames, bosspile_text: str):
         self.game = game
         self.nicknames = nicknames
-        # See regex w examples: https://regex101.com/r/iF4cVx/11 , used to parse one player line
-        regex = r"(?:^|\n)\s*~*(?::[a-z_]*: ?)* *([\w._ ]+ *(?:\([\w,_ :]*\))?) *(?::[\w_]*:)* *~*$"
-        self.player_line_re = re.compile(regex)
+        # See regex w examples: https://regex101.com/r/iF4cVx/16, used to parse one player line
+        # Combined line is `(?:^|\n)\s*~{0,2}\s*(?::[a-z_]*:\s?)*\s*((?:[\w._]\s*?)+(?:\([\w,_\s:]*\))?)\s*(?::[\w_]*:)*\s*~{0,2}$`
+        regex = r"""
+(?:^|\n)                    # Start of line
+\s*~{0,2}                   # ~~ begin strikethrough for inactive players starts at beginning of line
+\s*(?::[a-z_]*:\s?)*        # Any number of text emojis pre player name group
+
+\s*(                        # Start player name capture group
+(?:[\w._]\s*?)+             # Player name can contain any number of word characters, ., _, and spaces
+(?:\([\w,_\s:]*\))?         # Player preferences are inside one set of literal()
+                            #     And can contain word characters, `,`, _, :, and spaces
+)                           # End player name capture group
+
+\s*(?::[\w_]*:)*            # Any number of text emojis post player name group
+\s*~{0,2}                   # ~~ end strikethrough for inactive players ends at end of line
+$                           # End of line
+"""
+        self.player_line_re = re.compile(regex, re.VERBOSE)
         self.players = self.parse_bosspile(bosspile_text)
         self.title_line = bosspile_text.split('\n')[0]
         if "bosspile" not in self.title_line.lower():
@@ -204,9 +228,9 @@ class BossPile:
                 if right_name.lower().startswith(self.nicknames[userid].lower()):
                     right_id = userid
             if left_id == -1:
-                print(f"*Is `{left_name}` a player on this server?*")
+                logger.debug(f"*Is `{left_name}` a player on this server?*")
             if right_id == -1:
-                print(f"*Is `{right_name}` a player on this server?*")
+                logger.debug(f"*Is `{right_name}` a player on this server?*")
             # Only tag the victor and the next person they face
             new_games_from_win = (left_id == victor_id or right_id == victor_id
                 or left_id == loser_id or right_id == loser_id
@@ -262,7 +286,13 @@ class BossPile:
         old_player = self.parse_bosspile_line(old_line)
         old_player_pos, err_msg = self.find_player_pos(old_player.username)
         if old_player_pos != -1:
-            self.players[old_player_pos] = self.parse_bosspile_line(new_line)
+            player = self.parse_bosspile_line(new_line)
+            if player:
+                self.players[old_player_pos] = player
+            else:
+                return f"""Unable to parse line `{new_line}`.
+Player name can only contain alphanumeric characters, `_`, `.`, and spaces.
+Preferences must all be within one () and can contain alphanumeric characters, `,`, `_`, `:`, and spaces."""
             self.set_climbing_invariants()
             return f"`{old_line}` is now️ `{new_line}`"
         elif len(err_msg) > 0:
@@ -340,7 +370,7 @@ class BossPile:
             username = matches[0]
         else:
             if not player_line.startswith("__**"):  # bosspile standing line
-                print(f"Line did not match regex `{player_line}`")
+                logger.debug(f"Line did not match regex `{player_line}`")
             return None
         active = ":timer:" not in player_line and "__" not in player_line
         climbing = active and (":arrow_double_up:" in player_line or ":thought_balloon:" in player_line)
