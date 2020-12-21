@@ -156,7 +156,7 @@ $                           # End of line
         err_msg = self.validate_win(victor, loser_positions, victor_pos)
         if len(err_msg) > 0:
             return err_msg
-        loser_names = [self.players[pos].username for pos in loser_positions]
+        loser_names = [self.players[pos].username for pos in loser_positions if self.players[pos].active]
         messages = [self.players[victor_pos].username + " defeats " + ', '.join(loser_names) + "\n"]
         self.players[victor_pos].climbing = True
         for pos in loser_positions:

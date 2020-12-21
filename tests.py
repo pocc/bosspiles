@@ -129,8 +129,48 @@ Preferences must all be within one () and can contain alphanumeric characters, `
     assert_equal(expected, result)
 
 
+def inactive_players_dont_prevent_generated_matchups():
+    """Previous error was that a matchup wasn't recognized as generated due to this command
+    because an inactive player was in the way. Specifically, turtler7 was thought to be a loser to Hirakoba after Hirakoba's win."""
+    takenoko_bosspile = """__**Bosspile Standings**__
+
+:crown: :small_orange_diamond: :small_orange_diamond: :small_orange_diamond: nmego
+:small_orange_diamond: :small_orange_diamond: :small_orange_diamond: salaozy
+:small_orange_diamond: Coxy5
+Lilypam
+Hirakoba
+~~:small_orange_diamond: :small_orange_diamond: :small_orange_diamond: :small_orange_diamond: turtler7:timer:~~
+andycupid :arrow_double_up:
+Pocc :arrow_double_up:
+brisdaz :thought_balloon:
+"""
+    bp = BossPile("takenoko", [], takenoko_bosspile)
+    actual_bosspile = bp.win("Hirakoba")
+    expected_bosspile = """Hirakoba defeats andycupid
+
+:crossed_swords: andycupid :vs: Pocc
+
+:crossed_swords: Lilypam :vs: Hirakoba
+
+
+__**Bosspile Standings**__
+
+:crown: :small_orange_diamond: :small_orange_diamond: :small_orange_diamond: nmego
+:small_orange_diamond: :small_orange_diamond: :small_orange_diamond: salaozy
+:small_orange_diamond: Coxy5
+Lilypam
+Hirakoba :arrow_double_up:
+~~:small_orange_diamond: :small_orange_diamond: :small_orange_diamond: :small_orange_diamond: turtler7:timer:~~
+andycupid
+Pocc :arrow_double_up:
+brisdaz :thought_balloon:
+"""
+    assert_equal(expected_bosspile, actual_bosspile)
+
+
 def dont_repeat_mistakes():
     test_multiple_parentheses()
+    inactive_players_dont_prevent_generated_matchups()
 
 
 dont_repeat_mistakes()

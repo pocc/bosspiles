@@ -53,9 +53,7 @@ async def on_message(message):
             await send_message_partials(message.channel, return_message)
         except Exception as e:
             await message.channel.send("Tell <@!234561564697559041> to fix his bosspiles bot.")
-            with open('errs', 'a') as f:
-                f.write(traceback.format_exc())
-                f.write(str(e))
+            logger.error(traceback.format_exc() + str(e))
 
 
 async def parse_args(msg_text):
@@ -72,7 +70,7 @@ async def parse_args(msg_text):
     # only first letter has to match
     elif args[0][0] not in [w[0] for w in ["new", "win", "edit", "move", "remove", "active", "print", "unpin"]]:
         return [], f"`$ {args[0]}` is not a recognized subcommand. See `$`."
-    elif args[0][0] in [w[0] for w in ["edit"]] and len(args) != 3:
+    elif args[0][0] in [w[0] for w in ["edit", "active"]] and len(args) != 3:
         return [], f"`$ {args[0]}` requires 2 arguments. See `$`."
     else:
         return args, ""
