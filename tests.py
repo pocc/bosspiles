@@ -168,9 +168,57 @@ brisdaz :thought_balloon:
     assert_equal(expected_bosspile, actual_bosspile)
 
 
+def properly_mark_matches():
+    """Problem was that on Balzi win, Balzi vs xobxela isn't marked as a match"""
+    lucky_numbers_bosspile = """__**Bosspile Standings**__
+
+:crown: xobxela
+Pocc
+balzi :arrow_double_up:
+Lotus Blossom
+:small_orange_diamond:Dragomir
+stopherjones
+kingneal
+Lagunex  :arrow_double_up:
+Boardgame_Shri  :thought_balloon:
+snoozefest  :thought_balloon:
+Sharzi  :thought_balloon:
+Justin Jake  :thought_balloon:
+Takorina
+andycupid  :arrow_double_up:"""
+    bp = BossPile("luckynumbers", [], lucky_numbers_bosspile)
+    actual_bosspile = bp.win("Balzi")
+    expected_bosspile = """balzi defeats Pocc
+
+:crossed_swords: xobxela :vs: balzi
+
+:hourglass: Takorina :vs: andycupid
+:hourglass: kingneal :vs: Lagunex
+
+__**Bosspile Standings**__
+
+:crown: xobxela
+balzi :arrow_double_up:
+Pocc
+Lotus Blossom
+:small_orange_diamond: Dragomir
+stopherjones
+kingneal
+Lagunex :arrow_double_up:
+Boardgame_Shri :thought_balloon:
+snoozefest :thought_balloon:
+Sharzi :thought_balloon:
+Justin Jake :thought_balloon:
+Takorina
+andycupid :arrow_double_up:
+"""
+    assert_equal(expected_bosspile, actual_bosspile)
+
+
 def dont_repeat_mistakes():
     test_multiple_parentheses()
     inactive_players_dont_prevent_generated_matchups()
+    properly_mark_matches()
 
 
 dont_repeat_mistakes()

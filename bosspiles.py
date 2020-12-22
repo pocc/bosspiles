@@ -234,8 +234,8 @@ $                           # End of line
             # Only tag the victor and the next person they face
             new_games_from_win = (left_id == victor_id or right_id == victor_id
                 or left_id == loser_id or right_id == loser_id
-                or left_name.startswith(victor) or left_name.startswith(loser)
-                or right_name.startswith(victor) or right_name.startswith(loser))
+                or left_name.lower().startswith(victor.lower()) or left_name.lower().startswith(loser.lower())
+                or right_name.lower().startswith(victor.lower()) or right_name.lower().startswith(loser.lower()))
             if new_games_from_win:
                 left = tag_user(left_id, left_name)
                 right = tag_user(right_id, right_name)
