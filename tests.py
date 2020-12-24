@@ -215,10 +215,29 @@ andycupid :arrow_double_up:
     assert_equal(expected_bosspile, actual_bosspile)
 
 
+def match_index_out_of_range():
+    """Got a list index out of range when parsing match text."""
+    yokohama_bosspile = """__**Bosspile Standings**__
+
+:crown: Corwin007
+nmego :arrow_double_up:
+joepunman
+Pocc :arrow_double_up:
+Hirakoba
+xobxela :arrow_double_up:
+Faust664 :thought_balloon:
+"""
+    bp = BossPile("yokohama", [], yokohama_bosspile)
+    actual_response = bp.win('Faust664')
+    expected_response = """2 climbers found (1 required) at positions 5-6. No changes made."""
+    assert_equal(expected_response, actual_response)
+
+
 def dont_repeat_mistakes():
     test_multiple_parentheses()
     inactive_players_dont_prevent_generated_matchups()
     properly_mark_matches()
+    match_index_out_of_range()
 
 
 dont_repeat_mistakes()

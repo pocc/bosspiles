@@ -31,8 +31,8 @@ class BossPile:
     def __init__(self, game: str, nicknames, bosspile_text: str):
         self.game = game
         self.nicknames = nicknames
-        # See regex w examples: https://regex101.com/r/iF4cVx/16, used to parse one player line
-        # Combined line is `(?:^|\n)\s*~{0,2}\s*(?::[a-z_]*:\s?)*\s*((?:[\w._]\s*?)+(?:\([\w,_\s:]*\))?)\s*(?::[\w_]*:)*\s*~{0,2}$`
+        # See regex w examples: https://regex101.com/r/iF4cVx/18, used to parse one player line
+        # Combined line is `(?:^|\n)\s*~{0,2}\s*(?::[a-z_]*:\s?)*\s*((?:[\w._]\s*?)+(?:\([^()\n]*\))?)\s*(?::[\w_]*:)*\s*~{0,2}$`
         regex = r"""
 (?:^|\n)                    # Start of line
 \s*~{0,2}                   # ~~ begin strikethrough for inactive players starts at beginning of line
@@ -40,7 +40,7 @@ class BossPile:
 
 \s*(                        # Start player name capture group
 (?:[\w._]\s*?)+             # Player name can contain any number of word characters, ., _, and spaces
-(?:\([\w,_\s:]*\))?         # Player preferences are inside one set of literal()
+(?:\([^()\n]*\))?           # Player preferences are inside one set of literal() and can be any characters
                             #     And can contain word characters, `,`, _, :, and spaces
 )                           # End player name capture group
 
@@ -84,7 +84,7 @@ $                           # End of line
         if not self.players[victor_pos].active:
             return f"`{victor}` is not active and cannot play games."
 
-        num_climbers = self.players[victor_pos].climbing
+        num_climbers = int(self.players[victor_pos].climbing)
         for loser_pos in loser_positions:
             num_climbers += self.players[loser_pos].climbing
         if num_climbers != 1:
@@ -99,7 +99,7 @@ $                           # End of line
         3. Return the positions that are not victors
         """
         # Increase position from victor until we get to the climber
-        # min/max referring to place on ladder (lower => min ~ higher number)
+        # min/max referring to place on ladder, starting with 0 on the top (lower => min ~ higher number)
         min_pos = victor_pos
         while not self.players[min_pos].climbing:
             min_pos += 1
@@ -111,12 +111,16 @@ $                           # End of line
         for i in range(max_pos, min_pos+1):  # +1 due to range end not including number
             if i != victor_pos:
                 loser_positions.append(i)
+        # Problem with invalid victor with too few players in game
+        if len(loser_positions) < self.min_players - 1:
+            expected_min_pos = max_pos - self.min_players + 1
+            return loser_positions, f"{self.min_players - len(loser_positions)} climbers found (1 required) at positions {expected_min_pos}-{max_pos}. No changes made."
         # The loser should not be an inactive player
         for loser_pos in loser_positions:
             while loser_pos < len(self.players) and not self.players[loser_pos].active:
                 loser_pos += 1
         loser_positions.sort()
-        return loser_positions
+        return loser_positions, ""
 
     def dethrone_boss(self, victor_pos):
         # If user is boss and loses, move to bottom and convert 5 orange => blue
@@ -150,7 +154,9 @@ $                           # End of line
         victor_is_boss = victor_pos == 0
         if len(err_msg) > 0:
             return err_msg
-        loser_positions = self.find_loser_positions(victor_pos)
+        loser_positions, climber_errs = self.find_loser_positions(victor_pos)
+        if climber_errs:
+            return climber_errs
         # Any of the losers is the boss
         loser_is_boss = any([pos == 0 for pos in loser_positions])
         err_msg = self.validate_win(victor, loser_positions, victor_pos)
