@@ -215,9 +215,10 @@ $                           # End of line
         new_matches = []
         old_matches = []
 
-        def tag_user(user_id, name):
-            if user_id == -1:
-                return name
+        def tag_user(user_id, name, should_tag_user):
+            if user_id == -1 or not should_tag_user:
+                # Prevent preferences from being added to player name
+                return re.sub(r" *\([^()]*\) *", "", name)
             return "<@" + user_id + ">"
 
         for match in matches:
@@ -242,12 +243,12 @@ $                           # End of line
                 or left_id == loser_id or right_id == loser_id
                 or left_name.lower().startswith(victor.lower()) or left_name.lower().startswith(loser.lower())
                 or right_name.lower().startswith(victor.lower()) or right_name.lower().startswith(loser.lower()))
+            left = tag_user(left_id, left_name, new_games_from_win)
+            right = tag_user(right_id, right_name, new_games_from_win)
             if new_games_from_win:
-                left = tag_user(left_id, left_name)
-                right = tag_user(right_id, right_name)
                 new_matches += [f":crossed_swords: {left} :vs: {right}\n"]
             else:
-                old_matches += [f":hourglass: {left_name} :vs: {right_name}"]
+                old_matches += [f":hourglass: {left} :vs: {right}"]
         return "\n".join(new_matches + old_matches)
 
     def set_climbing_invariants(self):
