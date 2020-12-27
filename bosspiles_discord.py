@@ -25,6 +25,8 @@ logger.setLevel(logging.DEBUG)
 intents = discord.Intents(messages=True, guilds=True, members=True)
 client = discord.Client(intents=intents)
 
+VALID_COMMANDS = ["new", "win", "edit", "move", "remove", "active", "print", "pin", "unpin"]
+
 
 class GracefulCoroutineExit(Exception):
     """Return from the child function without exiting.
@@ -64,14 +66,16 @@ async def parse_args(msg_text):
         args = shlex.split(msg_text)
     except ValueError:
         return [], "Problem parsing arguments. Try quoting or not using special characters."
+    if "pin" == args[0]:
+        if len(args) != 2 or not args[1].isdigit():
+            return [], "`$pin` requires one argument: the message ID (number) of the message you want to pin."
     if len(args) == 0 or args[0][0] == 'h':  # on `$` or `$help`
         help_text = get_help()
         return [], help_text
-    # only first letter has to match
-    elif args[0][0] not in [w[0] for w in ["new", "win", "edit", "move", "remove", "active", "print", "unpin"]]:
-        return [], f"`$ {args[0]}` is not a recognized subcommand. See `$`."
-    elif args[0][0] in [w[0] for w in ["edit", "active"]] and len(args) != 3:
-        return [], f"`$ {args[0]}` requires 2 arguments. See `$`."
+    elif ("edit".startswith(args[0]) or "active".startswith(args[0])) and len(args) != 3:
+        return [], f"`${args[0]}` requires 2 arguments. See `$`."
+    elif not any([cmd.startswith(args[0]) for cmd in VALID_COMMANDS]):
+        return [], f"`${args[0]}` is not a recognized subcommand. See `$`."
     else:
         return args, ""
     return [], "Problem parsing arguments. Type $ for options."  # Returns this on any error condition
@@ -151,6 +155,14 @@ async def run_bosspiles(message):
         else:
             await message.author.send("You don't have permissions to unpin.")
         return ""
+    elif args[0] == "pin":
+        pins = await message.channel.pins()
+        for pin in pins:
+            if pin.author.id == client.user.id:
+                return "`$pin` can be used when this bot has no pins on the channel. There is already a bosspile pinned by this bot."
+        msg_to_pin = await message.channel.fetch_message(args[1])
+        await msg_to_pin.pin()
+        return f"Pinned {args[1]} successfully!"
     bp_pin, errs = await get_pinned_bosspile(message)
     if errs:
         return errs

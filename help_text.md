@@ -23,6 +23,8 @@ __**Available Commands**__
             `active <player> <True|False>`
     **print**: Prints the current bosspile as a new message. Arg can be raw or debug, but is not required.
             `print <option>`
+    **pin**: Pin a message to a channel given it's message ID. This will only work if there is not currently a bosspile pin on that channel.
+            `pin <message ID>`
 
 
 __**Examples**__
@@ -31,35 +33,39 @@ __**Examples**__
 
     **win**
         You won against Bob. (You don't need to include his name because of players with ⏫):
-            `$ win Alice`
+            `$win Alice`
         Expected Output includes result, as well as all new matches:
             `Alice defeats Bob`
             `Frank ⚔ Georgia`
             `Harriett ⚔ Ian`
     **new**
         You want to add player Charlie:
-            `$ new Charlie`
+            `$new Charlie`
         Expected Output:
             `Charlie has been added.`
 
     **edit**
         You want to edit player "Bob" to add a large blue diamond and climbing
-            `$ edit "bob" "🔷Bob⏫"`
+            `$edit "bob" "🔷Bob⏫"`
         Expected Output:
             `Bob ➡️ 🔷Bob⏫`
 
     **move**
         You want to move player "Bob" up 2 spaces
-            `$ move bob 2`
+            `$move bob 2`
 
     **remove**
         You want to remove player Dan:
-            `$ remove Dan`
+            `$remove Dan`
         Expected Output:
             `Dan has been removed.`
 
     **active**
         You want to make Eddie inactive and put a timer before his name:
-            `$ active Eddie false`
+            `$active Eddie false`
         Expected Output:
             `Eddie is now inactive.`
+    
+    **pin**
+        You copy the message ID from a message and you get 1234567890
+            `$pin 1234567890`
