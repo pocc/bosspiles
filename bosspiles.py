@@ -105,7 +105,8 @@ $                           # End of line
             min_pos += 1
         # Find the next highest climber or max players, whichever comes first
         max_pos = min_pos
-        while not self.players[max_pos-1].climbing and min_pos - max_pos < self.max_players - 1:
+        # If the player is inactive, continue going up the ladder
+        while max_pos > 0 and (not self.players[max_pos].active or not self.players[max_pos-1].climbing and min_pos - max_pos < self.max_players - 1):
             max_pos -= 1
         loser_positions = []
         for i in range(max_pos, min_pos+1):  # +1 due to range end not including number

@@ -81,9 +81,19 @@ async def parse_args(msg_text):
     return [], "Problem parsing arguments. Type $ for options."  # Returns this on any error condition
 
 
-async def get_pinned_bosspile(message):
+def is_valid_bosspile(pin_text):
+    if '\n' not in pin_text:
+        return False
+    first_line = pin_text.lower().split('\n')[0]
+    has_crown = "\n:crown:" in pin_text or "\n👑" in pin_text
+    has_title = 'bosspile' in first_line or 'ladder' in first_line
+    has_winners = ":small_orange_diamond:" in pin_text or "🔸" in pin_text
+    has_climbers = "arrow_double_up" in pin_text or "⏫" in pin_text
+    return has_crown and has_title and (has_winners or has_climbers)
+
+
+async def get_pinned_bosspile(pins):
     """Get the pinned messages if there are any."""
-    pins = await message.channel.pins()
     if len(pins) == 0:
         return None, "This channel has no pins (a pinned bosspile is required)"
     for pin in pins:
@@ -91,9 +101,7 @@ async def get_pinned_bosspile(message):
         if pin.author.id == client.user.id:
             return pin, ""
         # If it has the format of a bosspile, treat it like one
-        elif ("\n:crown:" in pin.content or "\n👑" in pin.content) \
-                and '\n' in pin.content and 'bosspile' in pin.content.lower().split('\n')[0] \
-                and (":small_orange_diamond:" in pin.content or "🔸" in pin.content or "arrow_double_up" in pin.content or "⏫" in pin.content):
+        elif is_valid_bosspile(pin.content):
             return pin, ""
     return None, "This channel has no bosspile pins! Pin your bosspile message and try again."
 
@@ -146,6 +154,7 @@ async def run_bosspiles(message):
     for user in message.guild.members:
         nicknames[str(user.id)] = user.display_name
     # We can change the board game name, but I'm not sure it matters.
+    channel_pins = await message.channel.pins()
     if args[0] == "unpin":
         # Unpin requires a reason
         if len(args) < 2:
@@ -156,14 +165,20 @@ async def run_bosspiles(message):
             await message.author.send("You don't have permissions to unpin.")
         return ""
     elif args[0] == "pin":
-        pins = await message.channel.pins()
-        for pin in pins:
+        for pin in channel_pins:
             if pin.author.id == client.user.id:
                 return "`$pin` can be used when this bot has no pins on the channel. There is already a bosspile pinned by this bot."
         msg_to_pin = await message.channel.fetch_message(args[1])
-        await msg_to_pin.pin()
-        return f"Pinned {args[1]} successfully!"
-    bp_pin, errs = await get_pinned_bosspile(message)
+        if is_valid_bosspile(msg_to_pin.content):
+            new_bp_pin = await message.channel.send(msg_to_pin.content)
+            await new_bp_pin.pin()
+            return f"Pinned {args[1]} successfully!"
+        else:
+            return f"Message with ID {args[1]} is not a valid bosspile. Make sure it has a\
+                    \n* :crown:\
+                    \n* 'ladder' or 'bosspile' in the first line\
+                    \n* At least one :double_arrow_up:."
+    bp_pin, errs = await get_pinned_bosspile(channel_pins)
     if errs:
         return errs
     # We can only edit our own messages

@@ -233,11 +233,57 @@ Faust664 :thought_balloon:
     assert_equal(expected_response, actual_response)
 
 
+def match_index_out_of_range_w_inactive():
+    rftg_bosspile = """__**Bosspile Standings**__
+
+:crown: :large_blue_diamond: :large_blue_diamond: :small_orange_diamond: :small_orange_diamond: :small_orange_diamond: :small_orange_diamond: andycupid (GS, AA, RI, XI)
+:large_blue_diamond: :small_orange_diamond: tarpshack (AA, GS, RI, BW, AAo) :arrow_double_up:
+:large_blue_diamond: :small_orange_diamond: :small_orange_diamond: :small_orange_diamond: :small_orange_diamond: nmego (Xli, XI, AA, RI, GS, BoW, Base)
+Gilderoy (GS, RI, BW, XIi)
+xobxela (GS)
+:small_orange_diamond: :small_orange_diamond: :small_orange_diamond: :small_orange_diamond: Pocc (:star:, AA, RI, GS, BW, XI) :arrow_double_up:
+snoozefest (GS, RI, BW)
+sesquiup (AA, GS, RI, BW)
+Omniraptor (AAO, AA, RI) :arrow_double_up:
+saltybream
+
+ __INACTIVE__
+~~:small_orange_diamond: tomd1:timer:~~
+Justin Jake :arrow_double_up:"""
+    bp = BossPile("raceforthegalaxy", [], rftg_bosspile)
+    actual_response = bp.win('Justin Jake')
+    expected_response = """Justin Jake defeats saltybream
+
+:hourglass: sesquiup :vs: Omniraptor
+:hourglass: xobxela :vs: Pocc
+:hourglass: andycupid :vs: tarpshack
+
+__**Bosspile Standings**__
+
+:crown: :large_blue_diamond: :large_blue_diamond: :small_orange_diamond: :small_orange_diamond: :small_orange_diamond: :small_orange_diamond: andycupid (GS, AA, RI, XI)
+:large_blue_diamond: :small_orange_diamond: tarpshack (AA, GS, RI, BW, AAo) :arrow_double_up:
+:large_blue_diamond: :small_orange_diamond: :small_orange_diamond: :small_orange_diamond: :small_orange_diamond: nmego (Xli, XI, AA, RI, GS, BoW, Base)
+Gilderoy (GS, RI, BW, XIi)
+xobxela (GS)
+:small_orange_diamond: :small_orange_diamond: :small_orange_diamond: :small_orange_diamond: Pocc (:star:, AA, RI, GS, BW, XI) :arrow_double_up:
+snoozefest (GS, RI, BW)
+sesquiup (AA, GS, RI, BW)
+Omniraptor (AAO, AA, RI) :arrow_double_up:
+Justin Jake :thought_balloon:
+saltybream :thought_balloon:
+
+ __INACTIVE__
+~~:small_orange_diamond: tomd1:timer:~~
+"""
+    assert_equal(expected_response, actual_response)
+
+
 def dont_repeat_mistakes():
     test_multiple_parentheses()
     inactive_players_dont_prevent_generated_matchups()
     properly_mark_matches()
     match_index_out_of_range()
+    match_index_out_of_range_w_inactive()
 
 
 dont_repeat_mistakes()
