@@ -278,12 +278,47 @@ saltybream :thought_balloon:
     assert_equal(expected_response, actual_response)
 
 
+def fourth_player_beats_boss():
+    """The fourth player beats the boss and does not move."""
+    orig_bosspile = """__**3-4P RFTG VBOSSPILE**__
+
+:crown: andycupid (GS, AA, RI, XI)
+tarpshack (AA, GS, RI, BW, AAo)
+nmego (Xli, XI, AA, RI, GS, BoW, Base)
+Gilderoy (GS, RI, BW, XIi) :arrow_double_up:
+Justin Jake :thought_balloon:
+Pocc (AA, RI, GS, BW, XI)
+saltybream :arrow_double_up:"""
+    bp = BossPile("raceforthegalaxy", [], orig_bosspile)
+    actual_response = bp.win('Gilderoy')
+    expected_response = """Gilderoy (GS, RI, BW, XIi) defeats andycupid (GS, AA, RI, XI), tarpshack (AA, GS, RI, BW, AAo), nmego (Xli, XI, AA, RI, GS, BoW, Base)
+
+andycupid (GS, AA, RI, XI) has lost the :crown: to Gilderoy (GS, RI, BW, XIi)
+andycupid (GS, AA, RI, XI) goes down 1 spaces.
+2+ player matchups partially implemented.
+:hourglass: Pocc (AA, RI, GS, BW, XI) :vs: saltybream
+:hourglass: andycupid (GS, AA, RI, XI) :vs: nmego (Xli, XI, AA, RI, GS, BoW, Base) :vs: tarpshack (AA, GS, RI, BW, AAo) :vs: Justin Jake
+
+__**3-4P RFTG VBOSSPILE**__
+
+:crown: Gilderoy (GS, RI, BW, XIi)
+andycupid (GS, AA, RI, XI)
+nmego (Xli, XI, AA, RI, GS, BoW, Base)
+tarpshack (AA, GS, RI, BW, AAo)
+Justin Jake :arrow_double_up:
+Pocc (AA, RI, GS, BW, XI)
+saltybream :arrow_double_up:
+"""
+    assert_equal(expected_response, actual_response)
+
+
 def dont_repeat_mistakes():
     test_multiple_parentheses()
     inactive_players_dont_prevent_generated_matchups()
     properly_mark_matches()
     match_index_out_of_range()
     match_index_out_of_range_w_inactive()
+    fourth_player_beats_boss()
 
 
 dont_repeat_mistakes()

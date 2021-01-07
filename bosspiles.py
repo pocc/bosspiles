@@ -100,6 +100,7 @@ $                           # End of line
         """
         # Increase position from victor until we get to the climber
         # min/max referring to place on ladder, starting with 0 on the top (lower => min ~ higher number)
+        # find the first climber challenging everyone above in ladder
         min_pos = victor_pos
         while not self.players[min_pos].climbing:
             min_pos += 1
@@ -144,6 +145,9 @@ $                           # End of line
                     self.players[num_down + 1].climbing and not self.players[num_down].climbing:
                 num_down += 1
                 messages += [f"{p2_name} goes down an additional space to not interrupt a game."]
+            if self.min_players > 2:
+                # move multiplayer victor to 2nd position so 2 player logic still holds
+                self.players[victor_pos], self.players[1] = self.players[1], self.players[victor_pos]
             self.players = self.players[1:num_down + 1] + [self.players[0]] + self.players[num_down + 1:]
         return messages
 
@@ -199,7 +203,8 @@ $                           # End of line
             for m in matches:
                 match_text = ":hourglass:"
                 for p in m:
-                    match_text += " " + p.username
+                    # Get rid of preferences in () in matchups
+                    match_text += " " + re.sub(r" \([^()]\)", "", p.username)
                     if p != m[len(m)-1]:
                         match_text += " :vs:"
                 match_texts.append(match_text)
