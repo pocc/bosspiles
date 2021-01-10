@@ -66,12 +66,12 @@ async def parse_args(msg_text):
         args = shlex.split(msg_text)
     except ValueError:
         return [], "Problem parsing arguments. Try quoting or not using special characters."
-    if "pin" == args[0]:
-        if len(args) != 2 or not args[1].isdigit():
-            return [], "`$pin` requires one argument: the message ID (number) of the message you want to pin."
     if len(args) == 0 or args[0][0] == 'h':  # on `$` or `$help`
         help_text = get_help()
         return [], help_text
+    elif "pin" == args[0]:
+        if len(args) != 2 or not args[1].isdigit():
+            return [], "`$pin` requires one argument: the message ID (number) of the message you want to pin."
     elif ("edit".startswith(args[0]) or "active".startswith(args[0])) and len(args) != 3:
         return [], f"`${args[0]}` requires 2 arguments. See `$`."
     elif not any([cmd.startswith(args[0]) for cmd in VALID_COMMANDS]):
@@ -145,7 +145,7 @@ async def run_bosspiles(message):
     """Run the bosspiles program ~ main()."""
     logger.debug(f"Received message `{message.content}`")
     if "sushi-go-mbosspile" in message.channel.name:
-        return "Coxy5 manages this bosspile, not the bosspiles bot. Ping him instead."
+        return "Coxy5 manages this bosspile, not the bosspiles bot. He is quite helpful and will get you sorted right quick."
     args, errs = await parse_args(message.content)
     if errs:
         return errs
