@@ -28,8 +28,8 @@ class PlayerData:
 
 class BossPile:
     """Class to keep track of players and their rankings"""
-    def __init__(self, game: str, nicknames, bosspile_text: str):
-        self.game = game
+    def __init__(self, channel_name: str, nicknames, bosspile_text: str):
+        self.game = channel_name.replace('bosspile', '').replace('-', '')
         self.nicknames = nicknames
         # See regex w examples: https://regex101.com/r/iF4cVx/18, used to parse one player line
         # Combined line is `(?:^|\n)\s*~{0,2}\s*(?::[a-z_]*:\s?)*\s*((?:[\w._]\s*?)+(?:\([^()\n]*\))?)\s*(?::[\w_]*:)*\s*~{0,2}$`
@@ -267,7 +267,7 @@ $                           # End of line
         self.players[0].climbing = False
 
     def generate_matches(self):
-        """Create the matches based on who is climbing."""
+        """Create the matches based on who is climbing. Generates lists of matched players"""
         matches = []
         active_players = [p for p in self.players if p.active]
         counter = len(active_players) - 1  # start at bottom and go up; -1 fencepost error

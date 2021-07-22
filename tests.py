@@ -1,6 +1,7 @@
 # coding: utf-8
 """Limited tests."""
 from bosspiles import BossPile
+from bosspiles_discord import is_valid_bosspile
 
 
 POTION_EXPLOSION_BOSSPILE = """__**2-3P POTION EXPLOSION VBOSSPILE**__
@@ -311,6 +312,17 @@ saltybream :arrow_double_up:
 """
     assert_equal(expected_response, actual_response)
 
+def check_pin():
+    pin = """__**Bosspile Standings**__
+
+:crown: Dragomir
+Pocc
+xobxela :arrow_double_up:
+dockoala
+turtler7 :arrow_double_up:
+"""
+    assert_equal(is_valid_bosspile(pin), True)
+
 
 def dont_repeat_mistakes():
     test_multiple_parentheses()
@@ -319,6 +331,7 @@ def dont_repeat_mistakes():
     match_index_out_of_range()
     match_index_out_of_range_w_inactive()
     fourth_player_beats_boss()
+    check_pin()
 
 
 dont_repeat_mistakes()

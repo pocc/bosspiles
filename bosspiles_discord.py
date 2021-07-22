@@ -7,6 +7,7 @@ import shlex
 import traceback
 
 import discord
+from discord.ext import tasks, commands
 
 from bosspiles import BossPile
 from keys import TOKEN
@@ -26,6 +27,38 @@ intents = discord.Intents(messages=True, guilds=True, members=True)
 client = discord.Client(intents=intents)
 
 VALID_COMMANDS = ["new", "win", "edit", "move", "remove", "active", "print", "pin", "unpin"]
+BOSSPILE_SERVER_ID = 419535969507606529
+
+
+class MyCog(commands.Cog):
+    # Schedule a weekly check of bosspiles
+    # 168 = 1 week
+    @tasks.loop(hours=168)
+    async def check_bosspiles(client):
+        text_channel_list = []
+        for server in client.guilds:
+            for channel in server.channels:
+                # If it's a bosspile, but not multibosspile or yucata
+                if str(channel.type) == 'text' and ("vbosspile" in channel.name or channel.category.name.lower() == "bosspile tracking channels"):
+                    text_channel_list.append(channel)
+                    await channel.send("__**Biweekly BGA game status check**__")
+        for channel in text_channel_list:
+            pins = await channel.pins()
+            valid_pin, error = await get_pinned_bosspile(pins)
+            if error or not valid_pin:
+                logger.error(error)
+            nicknames = {}
+            # Get the nicknames from the guild members
+            for user in channel.guild.members:
+                nicknames[str(user.id)] = user.display_name
+            game_name = channel.name.replace('bosspile', '').replace('-', '')
+            bosspile = BossPile(channel.name, nicknames, valid_pin.content)
+            matches = bosspile.generate_matches()
+            for match in matches:
+                player_names = [p.username for p in match]
+                player_text = '" "'.join(player_names)  # space between all players, quote player names
+                message_txt = f'!status {game_name} "{player_text}"'
+                await channel.send(message_txt)
 
 
 class GracefulCoroutineExit(Exception):
@@ -69,16 +102,14 @@ async def parse_args(msg_text):
     if len(args) == 0 or args[0][0] == 'h':  # on `$` or `$help`
         help_text = get_help()
         return [], help_text
-    elif "pin" == args[0]:
-        if len(args) != 2 or not args[1].isdigit():
-            return [], "`$pin` requires one argument: the message ID (number) of the message you want to pin."
+    elif "pin" == args[0] and (len(args) != 2 or not args[1].isdigit()):
+        return [], "`$pin` requires one argument: the message ID (number) of the message you want to pin."
     elif ("edit".startswith(args[0]) or "active".startswith(args[0])) and len(args) != 3:
         return [], f"`${args[0]}` requires 2 arguments. See `$`."
     elif not any([cmd.startswith(args[0]) for cmd in VALID_COMMANDS]):
         return [], f"`${args[0]}` is not a recognized subcommand. See `$`."
     else:
         return args, ""
-    return [], "Problem parsing arguments. Type $ for options."  # Returns this on any error condition
 
 
 def is_valid_bosspile(pin_text):
@@ -177,23 +208,21 @@ async def run_bosspiles(message):
             return f"Message with ID {args[1]} is not a valid bosspile. Make sure it has a\
                     \n* :crown:\
                     \n* 'ladder' or 'bosspile' in the first line\
-                    \n* At least one :double_arrow_up:."
+                    \n* At least one :arrow_double_up:."
     bp_pin, errs = await get_pinned_bosspile(channel_pins)
     if errs:
         return errs
     # We can only edit our own messages
     edit_existing_bp = bp_pin.author == client.user
-    game = message.channel.name.replace('bosspile', '').replace('-', '')
-    bosspile = BossPile(game, nicknames, bp_pin.content)
+    bosspile = BossPile(message.channel.name, nicknames, bp_pin.content)
     return_message = await execute_command(args, bosspile)
     new_bosspile = bosspile.generate_bosspile()
-    bosspile_server_id = 419535969507606529
     contributors_line, day_expires = generate_contrib_line()
     if (
         args[0].startswith("w")
         and ("standings" in return_message.lower() or "bosspile" in return_message.lower())  # Bosspile Standings or Ladder Standings in title
         and (day_expires - dt.datetime.now()).days < 20
-        and message.guild.id == bosspile_server_id
+        and message.guild.id == BOSSPILE_SERVER_ID
     ):
         return_message += contributors_line
         new_bosspile += contributors_line
@@ -210,7 +239,7 @@ async def run_bosspiles(message):
 def generate_contrib_line():
     contributions = {
         "Coxy5": 15,
-        "Corwin007": 10,
+        "Corwin007": 32.82,  # 10+22.82
         "tarpshack": 25
     }
     total_contrib = sum(list(contributions.values()))
