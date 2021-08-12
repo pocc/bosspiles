@@ -32,8 +32,8 @@ BOSSPILE_SERVER_ID = 419535969507606529
 
 class MyCog(commands.Cog):
     # Schedule a weekly check of bosspiles
-    # 168 = 1 week
-    @tasks.loop(hours=168)
+    # 240 hours = 10 days
+    @tasks.loop(hours=240)
     async def check_bosspiles(client):
         text_channel_list = []
         for server in client.guilds:
@@ -175,8 +175,9 @@ async def execute_command(args, bosspile):
 async def run_bosspiles(message):
     """Run the bosspiles program ~ main()."""
     logger.debug(f"Received message `{message.content}`")
-    if "sushi-go-mbosspile" in message.channel.name:
-        return "Coxy5 manages this bosspile, not the bosspiles bot. He is quite helpful and will get you sorted right quick."
+    # if this is a discord server and the channel is a specific one
+    if message.guild and message.guild.id == BOSSPILE_SERVER_ID and "mbosspile" in message.channel.name:
+        return "@Coxy5 manages this bosspile, not the bosspiles bot. He is quite helpful and will get you sorted right quick."
     args, errs = await parse_args(message.content)
     if errs:
         return errs
