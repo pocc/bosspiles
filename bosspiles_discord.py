@@ -3,11 +3,14 @@ import datetime as dt
 import logging
 from logging.handlers import RotatingFileHandler
 import json
+import re
 import shlex
 import traceback
+import time
+from os import path
 
 import discord
-from discord.ext import tasks, commands
+from discord.ext import tasks
 
 from bosspiles import BossPile
 from keys import TOKEN
@@ -28,37 +31,59 @@ client = discord.Client(intents=intents)
 
 VALID_COMMANDS = ["new", "win", "edit", "move", "remove", "active", "print", "pin", "unpin"]
 BOSSPILE_SERVER_ID = 419535969507606529
+SECONDS_PER_WEEK = 7 * 86400
+STATUS_LOCK = '.statuslock'
 
 
-class MyCog(commands.Cog):
-    # Schedule a weekly check of bosspiles
-    # 240 hours = 10 days
-    @tasks.loop(hours=240)
-    async def check_bosspiles(client):
-        text_channel_list = []
-        for server in client.guilds:
-            for channel in server.channels:
-                # If it's a bosspile, but not multibosspile or yucata
-                if str(channel.type) == 'text' and ("vbosspile" in channel.name or channel.category.name.lower() == "bosspile tracking channels"):
-                    text_channel_list.append(channel)
-                    await channel.send("__**Biweekly BGA game status check**__")
-        for channel in text_channel_list:
-            pins = await channel.pins()
-            valid_pin, error = await get_pinned_bosspile(pins)
-            if error or not valid_pin:
-                logger.error(error)
-            nicknames = {}
-            # Get the nicknames from the guild members
-            for user in channel.guild.members:
-                nicknames[str(user.id)] = user.display_name
-            game_name = channel.name.replace('bosspile', '').replace('-', '')
-            bosspile = BossPile(channel.name, nicknames, valid_pin.content)
-            matches = bosspile.generate_matches()
-            for match in matches:
-                player_names = [p.username for p in match]
-                player_text = '" "'.join(player_names)  # space between all players, quote player names
-                message_txt = f'!status {game_name} "{player_text}"'
-                await channel.send(message_txt)
+# Schedule a weekly check of bosspiles
+@tasks.loop(hours=168)
+async def check_bosspiles():
+    if path.exists(STATUS_LOCK):
+        with open(STATUS_LOCK) as f:  # only check statuses *at most* once a week
+            timestamp = f.read()
+            if float(timestamp) > time.time() - SECONDS_PER_WEEK:
+                logger.debug("Skipping weekly status check as it has not been a week")
+                return
+    else:
+        with open(STATUS_LOCK, 'w') as f:
+            f.write(str(time.time()))
+    logger.debug("Weekly status check has triggered")
+    text_channel_list = []
+    for server in client.guilds:
+        for channel in server.channels:
+            # If it's a bosspile, but not multibosspile or yucata
+            isTextChannel = channel and type(channel) == discord.TextChannel
+            if isTextChannel and channel.name == "bugs":
+                await channel.send("Weekly status check has triggered.")
+            isVBosspile = "vbosspile" in channel.name
+            inBGACategory = channel.category and channel.category.name.lower() == "bosspile tracking channels"
+            if isTextChannel and (isVBosspile or inBGACategory):
+                text_channel_list.append(channel)
+    sorted_channel_names = sorted([chan.name for chan in text_channel_list])
+    logger.debug(f"Running status check against {len(text_channel_list)} channels: {sorted_channel_names}")
+    for channel in text_channel_list:
+        # Stagger messages so we don't DDOS the BGA bot
+        time.sleep(5)
+        pins = await channel.pins()
+        valid_pin, error = await get_pinned_bosspile(pins)
+        if error or not valid_pin:
+            logger.error(error)
+            continue
+        await channel.send("__**Weekly BGA game status check**__")
+        nicknames = {}
+        # Get the nicknames from the guild members
+        for user in channel.guild.members:
+            username = re.sub(r"\([^)]*\)", "", user.display_name)
+            nicknames[str(user.id)] = username
+        game_name = re.sub(r'[^-]?bosspile', "", channel.name).replace('-', '')
+        game_name = re.sub(r"(r.{3})ftg", "$1forthegalaxy", game_name)  # Replace common abbreviations
+        bosspile = BossPile(channel.name, nicknames, valid_pin.content)
+        matches = bosspile.generate_matches()
+        for match in matches:
+            player_names = [p.username for p in match]
+            player_text = '" "'.join(player_names)  # space between all players, quote player names
+            message_txt = f'!status {game_name} "{player_text}"'
+            await channel.send(message_txt)
 
 
 class GracefulCoroutineExit(Exception):
@@ -73,6 +98,7 @@ async def on_ready():
     logger.debug(f'{client.user.name} has connected to Discord, and is active on {len(client.guilds)} servers!')
     # Create words under bot that say "Listening to !bga"
     listening_to_help = discord.Activity(type=discord.ActivityType.listening, name="$")
+    await check_bosspiles.start()
     await client.change_presence(activity=listening_to_help)
 
 
