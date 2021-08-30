@@ -7,7 +7,7 @@ import re
 import shlex
 import traceback
 import time
-from os import path
+import datetime
 
 import discord
 from discord.ext import tasks
@@ -36,17 +36,11 @@ STATUS_LOCK = '.statuslock'
 
 
 # Schedule a weekly check of bosspiles
-@tasks.loop(hours=168)
+@tasks.loop(hours=24)
 async def check_bosspiles():
-    if path.exists(STATUS_LOCK):
-        with open(STATUS_LOCK) as f:  # only check statuses *at most* once a week
-            timestamp = f.read()
-            if float(timestamp) > time.time() - SECONDS_PER_WEEK:
-                logger.debug("Skipping weekly status check as it has not been a week")
-                return
-    else:
-        with open(STATUS_LOCK, 'w') as f:
-            f.write(str(time.time()))
+    SUNDAY_DAYNUM = 6
+    if datetime.datetime.today().weekday() != SUNDAY_DAYNUM:
+        return
     logger.debug("Weekly status check has triggered")
     text_channel_list = []
     for server in client.guilds:
@@ -55,12 +49,12 @@ async def check_bosspiles():
             isTextChannel = channel and type(channel) == discord.TextChannel
             if isTextChannel and channel.name == "bugs":
                 await channel.send("Weekly status check has triggered.")
-            isVBosspile = "vbosspile" in channel.name
             inBGACategory = channel.category and channel.category.name.lower() == "bosspile tracking channels"
-            if isTextChannel and (isVBosspile or inBGACategory):
+            if isTextChannel and inBGACategory:
                 text_channel_list.append(channel)
     sorted_channel_names = sorted([chan.name for chan in text_channel_list])
-    logger.debug(f"Running status check against {len(text_channel_list)} channels: {sorted_channel_names}")
+    num_channels = len(text_channel_list)
+    logger.debug(f"Running status check against {num_channels} channels: {sorted_channel_names}")
     for channel in text_channel_list:
         # Stagger messages so we don't DDOS the BGA bot
         time.sleep(5)
@@ -73,17 +67,26 @@ async def check_bosspiles():
         nicknames = {}
         # Get the nicknames from the guild members
         for user in channel.guild.members:
-            username = re.sub(r"\([^)]*\)", "", user.display_name)
-            nicknames[str(user.id)] = username
-        game_name = re.sub(r'[^-]?bosspile', "", channel.name).replace('-', '')
-        game_name = re.sub(r"(r.{3})ftg", "$1forthegalaxy", game_name)  # Replace common abbreviations
-        bosspile = BossPile(channel.name, nicknames, valid_pin.content)
-        matches = bosspile.generate_matches()
-        for match in matches:
-            player_names = [p.username for p in match]
-            player_text = '" "'.join(player_names)  # space between all players, quote player names
-            message_txt = f'!status {game_name} "{player_text}"'
-            await channel.send(message_txt)
+            nicknames[str(user.id)] = user
+        status_checks = generate_status_checks(channel.name, nicknames, valid_pin.content)
+        for status_check in status_checks:
+            await channel.send(status_check)
+
+
+def generate_status_checks(channel_name, nicknames, pin_content):
+    game_name = re.sub(r'[^-]?bosspile', "", channel_name).replace('-', '')
+    game_name = re.sub(r"(r.{3})ftg", "\1forthegalaxy", game_name)  # Replace common abbreviations
+    bosspile = BossPile(channel_name, nicknames, pin_content)
+    matches = bosspile.generate_matches()
+    status_checks = []
+    for match in matches:
+        player_names = []
+        for player in match:
+            username = re.sub(r" *\([^)]*\) *", "", player.username)
+            player_names.append(username)
+        player_text = '" "'.join(player_names)  # space between all players, quote player names
+        status_checks.append(f'!status {game_name} "{player_text}"')
+    return status_checks
 
 
 class GracefulCoroutineExit(Exception):
