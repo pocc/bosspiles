@@ -65,17 +65,19 @@ $                           # End of line
         """Find the player position in the player list or -1 and error"""
         player_pos = -1
         err = ""
+        actual_player_name = player_name  # in case player name is truncated (i.e. Po for Pocc)
         for i in range(len(self.players)):
             player = self.players[i]
             if player.username.lower().startswith(player_name.lower()):
                 # If there's ambiguity, treat it as not found.
+                actual_player_name = player.username
                 if player_pos != -1:
-                    return player_pos, f"Multiple matching players found for `{player_name}`" \
+                    return actual_player_name, player_pos, f"Multiple matching players found for `{player_name}`" \
                         f" at positions {player_pos} and {i}. No changes made."
                 player_pos = i
         if player_pos == -1:
-            return player_pos, f"Player {player_name} not found. No changes made."
-        return player_pos, err
+            return actual_player_name, player_pos, f"Player {player_name} not found. No changes made."
+        return  actual_player_name, player_pos, err
 
     def validate_win(self, victor, loser_positions, victor_pos):
         """Ensure that win meets parameters."""
@@ -155,7 +157,7 @@ $                           # End of line
         """p1 has won the game. p1 is climbing. p2 stops climbing.
         The list of messages sent as a result of winning are saved in the messages list."""
         # ret_messages = []
-        victor_pos, err_msg = self.find_player_pos(victor)
+        victor, victor_pos, err_msg = self.find_player_pos(victor)
         victor_is_boss = victor_pos == 0
         if len(err_msg) > 0:
             return err_msg
@@ -236,9 +238,9 @@ $                           # End of line
             left_id = -1
             right_id = -1
             for userid in self.nicknames:
-                if left_name.lower().startswith(self.nicknames[userid].lower()):
+                if left_name.lower() == self.nicknames[userid].lower():
                     left_id = userid
-                if right_name.lower().startswith(self.nicknames[userid].lower()):
+                if right_name.lower() == self.nicknames[userid].lower():
                     right_id = userid
             if left_id == -1:
                 logger.debug(f"*Is `{left_name}` a player on this server?*")
@@ -247,8 +249,8 @@ $                           # End of line
             # Only tag the victor and the next person they face
             new_games_from_win = (left_id == victor_id or right_id == victor_id
                 or left_id == loser_id or right_id == loser_id
-                or left_name.lower().startswith(victor.lower()) or left_name.lower().startswith(loser.lower())
-                or right_name.lower().startswith(victor.lower()) or right_name.lower().startswith(loser.lower()))
+                or left_name.lower() == victor.lower() or left_name.lower() == loser.lower()
+                or right_name.lower() == victor.lower() or right_name.lower() == loser.lower())
             left = tag_user(left_id, left_name, new_games_from_win)
             right = tag_user(right_id, right_name, new_games_from_win)
             if new_games_from_win:
@@ -286,7 +288,7 @@ $                           # End of line
     def add(self, player_name):
         """Add a player to the very end."""
         # Check that the player isn't already in the bosspile
-        pos, _ = self.find_player_pos(player_name)
+        player_name, pos, _ = self.find_player_pos(player_name)
         if pos != -1:
             return f"{player_name} is already in the bosspile. No changes made."
         new_player = PlayerData(player_name)
@@ -297,7 +299,7 @@ $                           # End of line
     def edit(self, old_line, new_line):
         """Edit an existing player."""
         old_player = self.parse_bosspile_line(old_line)
-        old_player_pos, err_msg = self.find_player_pos(old_player.username)
+        old_player.username, old_player_pos, err_msg = self.find_player_pos(old_player.username)
         if old_player_pos != -1:
             player = self.parse_bosspile_line(new_line)
             if player:
@@ -314,7 +316,7 @@ Preferences must all be within one () and can contain alphanumeric characters, `
 
     def move(self, player, relative_pos):
         """Move an existing player. List starts at 0 and goes down."""
-        player_pos, err_msg = self.find_player_pos(player)
+        player, player_pos, err_msg = self.find_player_pos(player)
         if len(err_msg) > 0:
             return err_msg
         if not relative_pos.isdigit() and not relative_pos[0] == '-' and not relative_pos[1:].isdigit():
@@ -335,7 +337,7 @@ Preferences must all be within one () and can contain alphanumeric characters, `
         """Delete a player from the leaderboard. Returns whether there was a successful deletion or not."""
         if len(self.players) <= MINIMUM_BOSSPILE_PLAYERS:
             return f"A bosspile must have at least {MINIMUM_BOSSPILE_PLAYERS} players. Skipping player deletion."
-        player_pos, err = self.find_player_pos(player_name)
+        player_name, player_pos, err = self.find_player_pos(player_name)
         if len(err) > 0:
             return err
         del self.players[player_pos]
@@ -343,7 +345,7 @@ Preferences must all be within one () and can contain alphanumeric characters, `
 
     def change_active_status(self, player_name, is_active):
         """Make a player active/inactive."""
-        player_pos, err = self.find_player_pos(player_name)
+        player_name, player_pos, err = self.find_player_pos(player_name)
         if len(err) > 0:
             return err
         self.players[player_pos].active = is_active

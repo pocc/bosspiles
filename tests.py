@@ -1,7 +1,6 @@
 # coding: utf-8
 """Limited tests."""
 from bosspiles import BossPile
-from bosspiles_discord import is_valid_bosspile, generate_status_checks
 
 
 POTION_EXPLOSION_BOSSPILE = """__**2-3P POTION EXPLOSION VBOSSPILE**__
@@ -17,9 +16,9 @@ Takorina :arrow_double_up:"""
 
 def assert_equal(left, right):
     if left != right:
-        print(f"Expecting `{left}` but got `{right}`")
+        print(f"Expecting `{left}` but got `{right}`", flush=True)
     else:
-        print("Test passed!")
+        print("Test passed!", flush=True)
 
 
 def test_2p_bosspile_crown_win():
@@ -114,9 +113,6 @@ def main():
     test_3p_bosspile_3p_bottom_player_wins()
     test_3p_bosspile_3p_middle_player_wins()
     test_3p_bosspile_3p_top_player_wins()
-
-
-main()
 
 
 # Catching past errors
@@ -313,49 +309,44 @@ saltybream :arrow_double_up:
     assert_equal(expected_response, actual_response)
 
 
-def check_pin():
-    pin = """__**Bosspile Standings**__
 
-:crown: Dragomir
-Pocc
-xobxela :arrow_double_up:
-dockoala
-turtler7 :arrow_double_up:
+def not_tagging_users():
+    orig_bosspile = """
+Bosspile standings:
+
+:crown: :large_orange_diamond: nmego
+:small_orange_diamond: :small_orange_diamond: Corwin007
+ligtreb :arrow_double_up:
+:small_orange_diamond: :small_orange_diamond: DocKoala
+joepunman :arrow_double_up:
 """
-    assert_equal(True, is_valid_bosspile(pin))
+    bp = BossPile("ygrandaustriahotel", [], orig_bosspile)
+    actual_response = bp.win('Corwin007')
+    expected_response = """Corwin007 defeats ligtreb
 
+:crossed_swords: nmego :vs: Corwin007
 
-def verify_status_checks():
-    channel_name = "splendor-bosspile"
-    players = ["seyfert", "turtler7", "balzi", "joepunman", "pocc", "lagunex", "cheery dog", "mrawesome1212", "sesquiup", "jcase16", "takorina"]
-    bosspile_text = """__**Bosspile Standings**__
+:hourglass: DocKoala :vs: joepunman
 
-:crown: :small_orange_diamond: :small_orange_diamond: Seyfert
-turtler7
-Balzi :arrow_double_up:
-joepunman
-Pocc
-Lagunex (:star:) :arrow_double_up:
-Cheery Dog
-MrAwesome1212
-sesquiup (:star:) :arrow_double_up:
-jcase16 :thought_balloon:
-Takorina :thought_balloon:
-~~ligtreb:timer:~~"""
-    statuses = generate_status_checks(channel_name, players, bosspile_text)
-    expected_statuses = ['!status splendor "MrAwesome1212" "sesquiup"', '!status splendor "Pocc" "Lagunex"', '!status splendor "turtler7" "Balzi"']
-    assert_equal(expected_statuses, statuses)
+__**Bosspile Standings**__
+
+:crown: :large_orange_diamond: nmego
+:small_orange_diamond: :small_orange_diamond: Corwin007 :arrow_double_up:
+ligtreb
+:small_orange_diamond: :small_orange_diamond: DocKoala
+joepunman :arrow_double_up:
+"""
+    assert_equal(expected_response, actual_response)
 
 
 def dont_repeat_mistakes():
+    main()
     test_multiple_parentheses()
     inactive_players_dont_prevent_generated_matchups()
     properly_mark_matches()
     match_index_out_of_range()
     match_index_out_of_range_w_inactive()
     fourth_player_beats_boss()
-    check_pin()
-    verify_status_checks()
-
+    not_tagging_users()
 
 dont_repeat_mistakes()

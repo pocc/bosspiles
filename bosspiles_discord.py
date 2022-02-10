@@ -24,6 +24,7 @@ formatter = logging.Formatter("%(asctime)s | %(name)s | %(levelname)s | %(messag
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
+day_started = str(datetime.date.today())
 
 # Intents are required as of discord 1.5
 intents = discord.Intents(messages=True, guilds=True, members=True)
@@ -39,7 +40,8 @@ STATUS_LOCK = '.statuslock'
 @tasks.loop(hours=24)
 async def check_bosspiles():
     SUNDAY_DAYNUM = 6
-    if datetime.datetime.today().weekday() != SUNDAY_DAYNUM:
+    todays_date = str(datetime.date.today())  # don't run on the day it started
+    if datetime.datetime.today().weekday() != SUNDAY_DAYNUM or todays_date == day_started:
         return
     logger.debug("Weekly status check has triggered")
     text_channel_list = []
@@ -57,7 +59,7 @@ async def check_bosspiles():
     logger.debug(f"Running status check against {num_channels} channels: {sorted_channel_names}")
     for channel in text_channel_list:
         # Stagger messages so we don't DDOS the BGA bot
-        time.sleep(5)
+        time.sleep(60)
         pins = await channel.pins()
         valid_pin, error = await get_pinned_bosspile(pins)
         if error or not valid_pin:
@@ -75,7 +77,6 @@ async def check_bosspiles():
 
 def generate_status_checks(channel_name, nicknames, pin_content):
     game_name = re.sub(r'[^-]?bosspile', "", channel_name).replace('-', '')
-    game_name = re.sub(r"(r.{3})ftg", "\1forthegalaxy", game_name)  # Replace common abbreviations
     bosspile = BossPile(channel_name, nicknames, pin_content)
     matches = bosspile.generate_matches()
     status_checks = []
@@ -248,12 +249,13 @@ async def run_bosspiles(message):
     return_message = await execute_command(args, bosspile)
     new_bosspile = bosspile.generate_bosspile()
     contributors_line, day_expires = generate_contrib_line()
-    if (
-        args[0].startswith("w")
-        and ("standings" in return_message.lower() or "bosspile" in return_message.lower())  # Bosspile Standings or Ladder Standings in title
-        and (day_expires - dt.datetime.now()).days < 20
-        and message.guild.id == BOSSPILE_SERVER_ID
-    ):
+
+    is_win = args[0].startswith("w")
+    # Bosspile Standings or Ladder Standings in title
+    is_bosspile_msg = ("standings" in return_message.lower() or "bosspile" in return_message.lower())
+    is_bosspile_server = message.guild.id == BOSSPILE_SERVER_ID
+    is_within_3weeks = (day_expires - dt.datetime.now()).days < 20
+    if is_win and is_bosspile_msg and is_bosspile_server and is_within_3weeks:
         return_message += contributors_line
         new_bosspile += contributors_line
     if new_bosspile != bp_pin.content:
@@ -269,7 +271,7 @@ async def run_bosspiles(message):
 def generate_contrib_line():
     contributions = {
         "Coxy5": 15,
-        "Corwin007": 32.82,  # 10+22.82
+        "Corwin007": 38.42,  # 10+22.82+5.6
         "tarpshack": 25
     }
     total_contrib = sum(list(contributions.values()))
@@ -277,7 +279,11 @@ def generate_contrib_line():
     days_bought = total_contrib / MONTHLY_HOSTING_COST * 30
     day_expires = (dt.datetime(2020, 8, 1, 0, 0, 0, 0) + dt.timedelta(days=days_bought))
     isodate_expires = day_expires.date().isoformat()
-    return f"\n_Hosting paid for until {isodate_expires} thanks to [{', '.join(list(contributions.keys()))}]._", day_expires
+    contributor_line = ""
+    for i in contributions:
+        num_months = round(contributions[i] / MONTHLY_HOSTING_COST, 1)
+        contributor_line += f" {i} ({num_months} mo) "
+    return f"\n_Hosting paid for until {isodate_expires} thanks to [{contributor_line}]._", day_expires
 
 
 async def unpin_bot_pins(args, message):
